@@ -1,5 +1,18 @@
 # TSMDB - Thiago Seva Movie Database
 
+## About
+A movie discovery app hosted statically on Vercel. Users can create an account/login via Firebase Auth UI, search and browse films (movies only, no TV/shows) using the TMDB API, add films to a favorites list stored in Firestore, and edit their account details. TMDB is used for public movie data only — no TMDB user account data is used.
+
+## Pages
+- `home.jsx` - Logged-in home page
+- `login.jsx` - Logged-out home page (sign up / login)
+- `browse.jsx` - Browse films by category
+- `film.jsx` - Film detail page
+- `results.jsx` - Search results for film titles (no TV/show titles) from search bar component(s)
+- `favorites.jsx` - View and remove favorited films
+- `account.jsx` - View and edit user account info from Firebase Auth
+- `lost.jsx` - 404 catch-all page
+
 ## Tech Stack
 - React 19 + Vite (JavaScript, not TypeScript)
 - shadcn/ui with Tailwind CSS v4, dark mode only
