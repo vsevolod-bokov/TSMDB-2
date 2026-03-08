@@ -44,6 +44,15 @@ A movie discovery app hosted statically on Vercel. Users can create an account/l
 - Env vars use `VITE_` prefix, stored in `.env` (not committed)
 - `.env` must be shared directly between teammates, not via git
 
+## Git Workflow
+- Never commit directly to `main` — always use feature branches
+- Branch naming: `feat/`, `fix/`, `docs/` prefixes (e.g., `feat/login-page`, `fix/avatar-bug`)
+- Pull latest main before creating a new branch: `git checkout main && git pull origin main`
+- Create branch: `git checkout -b feat/your-feature`
+- Push branch: `git push -u origin feat/your-feature`
+- Create a Pull Request on GitHub, then squash and merge into `main`
+- After merging: `git checkout main && git pull origin main`
+
 ## Conventions
 - Use JSX (not TSX)
 - Import path alias: `@/` maps to `src/`
