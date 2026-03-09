@@ -151,7 +151,7 @@ export default function Home() {
         </div>
       </div>
 
-      <MovieRow title="Now Playing" movies={nowPlaying} loading={loadingNow} />
+      <MovieRow title="New in Theaters" movies={nowPlaying} loading={loadingNow} />
       <MovieRow title="Your Favorites" movies={favorites} loading={loadingFavs} />
     </div>
   );

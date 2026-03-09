@@ -1,7 +1,319 @@
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { updateProfile, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { User } from 'lucide-react';
+
+const AVATAR_STYLES = [
+  { id: "adventurer", label: "Adventurer" },
+  { id: "avataaars", label: "Avataaars" },
+  { id: "bottts", label: "Bottts" },
+  { id: "fun-emoji", label: "Fun Emoji" },
+  { id: "lorelei", label: "Lorelei" },
+  { id: "pixel-art", label: "Pixel Art" },
+];
+
+const AVATARS_PER_PAGE = 8;
+
+function getAvatarUrl(style, seed) {
+  return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}&size=128`;
+}
+
+function generateSeeds(count) {
+  return Array.from({ length: count }, () => Math.random().toString(36).substring(2, 8));
+}
+
 export default function Account() {
+  const { user } = useAuth();
+
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+
+  const [profileMsg, setProfileMsg] = useState(null);
+  const [emailMsg, setEmailMsg] = useState(null);
+  const [passwordMsg, setPasswordMsg] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  // Avatar state
+  const [editingAvatar, setEditingAvatar] = useState(false);
+  const [avatarStyle, setAvatarStyle] = useState(AVATAR_STYLES[0].id);
+  const [seeds, setSeeds] = useState(() => generateSeeds(AVATARS_PER_PAGE));
+  const [selectedSeed, setSelectedSeed] = useState(seeds[0]);
+
+  async function handleUpdateProfile(e) {
+    e.preventDefault();
+    setSaving(true);
+    setProfileMsg(null);
+    try {
+      await updateProfile(user, { displayName });
+      setProfileMsg({ type: 'success', text: 'Display name updated.' });
+    } catch (err) {
+      setProfileMsg({ type: 'error', text: err.message });
+    }
+    setSaving(false);
+  }
+
+  async function handleUpdateEmail(e) {
+    e.preventDefault();
+    setSaving(true);
+    setEmailMsg(null);
+    try {
+      if (!currentPassword) {
+        setEmailMsg({ type: 'error', text: 'Current password is required to change email.' });
+        setSaving(false);
+        return;
+      }
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updateEmail(user, email);
+      setCurrentPassword('');
+      setEmailMsg({ type: 'success', text: 'Email updated.' });
+    } catch (err) {
+      setEmailMsg({ type: 'error', text: err.message });
+    }
+    setSaving(false);
+  }
+
+  async function handleUpdatePassword(e) {
+    e.preventDefault();
+    setSaving(true);
+    setPasswordMsg(null);
+    try {
+      if (!currentPassword) {
+        setPasswordMsg({ type: 'error', text: 'Current password is required.' });
+        setSaving(false);
+        return;
+      }
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setPasswordMsg({ type: 'success', text: 'Password updated.' });
+    } catch (err) {
+      setPasswordMsg({ type: 'error', text: err.message });
+    }
+    setSaving(false);
+  }
+
+  async function handleSaveAvatar() {
+    setSaving(true);
+    try {
+      const photoURL = getAvatarUrl(avatarStyle, selectedSeed);
+      await updateProfile(user, { photoURL });
+      setEditingAvatar(false);
+      setProfileMsg({ type: 'success', text: 'Avatar updated.' });
+    } catch (err) {
+      setProfileMsg({ type: 'error', text: err.message });
+    }
+    setSaving(false);
+  }
+
   return (
-    <div>
-      <h1>Account</h1>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold">Account Settings</h1>
+
+      {/* Avatar Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Avatar</CardTitle>
+          <CardDescription>Your profile picture across TSMDB.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!editingAvatar ? (
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={user?.photoURL} alt={user?.displayName} />
+                <AvatarFallback>
+                  {user?.displayName?.charAt(0)?.toUpperCase() || <User className="h-8 w-8" />}
+                </AvatarFallback>
+              </Avatar>
+              <Button variant="outline" onClick={() => setEditingAvatar(true)}>
+                Change Avatar
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <img
+                  src={getAvatarUrl(avatarStyle, selectedSeed)}
+                  alt="Avatar preview"
+                  className="h-20 w-20 rounded-full bg-muted"
+                />
+                <div>
+                  <p className="text-sm font-medium">Pick a new avatar</p>
+                  <p className="text-xs text-muted-foreground">Choose a style, then select one you like.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Style</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {AVATAR_STYLES.map(({ id, label }) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      variant={avatarStyle === id ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setAvatarStyle(id);
+                        const newSeeds = generateSeeds(AVATARS_PER_PAGE);
+                        setSeeds(newSeeds);
+                        setSelectedSeed(newSeeds[0]);
+                      }}
+                      className="text-xs"
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Choose your avatar</Label>
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                  {seeds.map((seed) => (
+                    <button
+                      key={seed}
+                      type="button"
+                      onClick={() => setSelectedSeed(seed)}
+                      className={`rounded-full overflow-hidden border-2 transition-colors p-0.5 ${
+                        selectedSeed === seed ? "border-primary" : "border-transparent hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      <img
+                        src={getAvatarUrl(avatarStyle, seed)}
+                        alt="Avatar option"
+                        className="h-10 w-10 rounded-full bg-muted"
+                      />
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newSeeds = generateSeeds(AVATARS_PER_PAGE);
+                    setSeeds(newSeeds);
+                    setSelectedSeed(newSeeds[0]);
+                  }}
+                >
+                  Show more
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleSaveAvatar} disabled={saving}>Save Avatar</Button>
+                <Button variant="outline" onClick={() => setEditingAvatar(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Display Name */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Display Name</CardTitle>
+          <CardDescription>This is your public name on TSMDB.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your display name"
+            />
+            {profileMsg && (
+              <p className={`text-sm ${profileMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
+                {profileMsg.text}
+              </p>
+            )}
+            <Button type="submit" disabled={saving}>Save</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Email */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Email Address</CardTitle>
+          <CardDescription>Update the email associated with your account.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpdateEmail} className="space-y-4">
+            <div className="space-y-2">
+              <Label>New Email</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="new@email.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Current Password</Label>
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Required to confirm changes"
+              />
+            </div>
+            {emailMsg && (
+              <p className={`text-sm ${emailMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
+                {emailMsg.text}
+              </p>
+            )}
+            <Button type="submit" disabled={saving}>Update Email</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Password */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Password</CardTitle>
+          <CardDescription>Change your account password.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Current Password</Label>
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Your current password"
+              />
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Your new password"
+              />
+            </div>
+            {passwordMsg && (
+              <p className={`text-sm ${passwordMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
+                {passwordMsg.text}
+              </p>
+            )}
+            <Button type="submit" disabled={saving}>Update Password</Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 }
