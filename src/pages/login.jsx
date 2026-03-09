@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SignInAuthForm } from '@/components/sign-in-auth-form';
 import { SignUpAuthForm } from '@/components/sign-up-auth-form';
+import movieBg from '@/assets/movie background.png';
 
 export default function Login() {
   const { user, loading } = useAuth();
@@ -25,12 +26,15 @@ export default function Login() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
+    <div
+      className="flex items-center justify-center min-h-screen p-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${movieBg})` }}
+    >
       <div className="w-full max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle>TSMDB</CardTitle>
-            <CardDescription>Thiago Seva Movie Database</CardDescription>
+            <CardTitle className="text-2xl">Welcome to TSMDB</CardTitle>
+            <CardDescription>Your personal movie universe. Track, discover, and save your favorite films all in one place.</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="sign-in">
