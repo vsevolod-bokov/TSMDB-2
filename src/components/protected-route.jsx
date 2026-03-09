@@ -1,5 +1,6 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import AppLayout from '@/components/app-layout';
 
 export default function ProtectedRoute() {
   const { user, loading } = useAuth();
@@ -16,5 +17,5 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return <AppLayout />;
 }
