@@ -1,37 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { tmdbFetch } from '@/tmdb';
-import { Card, CardContent } from '@/components/ui/card';
-
-const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
-
-function MovieCard({ movie }) {
-  return (
-    <Link to={`/film/${movie.id}`}>
-      <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all">
-        <CardContent className="p-0">
-          {movie.poster_path ? (
-            <img
-              src={`${TMDB_IMG}${movie.poster_path}`}
-              alt={movie.title}
-              className="w-full aspect-[2/3] object-cover"
-            />
-          ) : (
-            <div className="w-full aspect-[2/3] bg-muted flex items-center justify-center text-muted-foreground text-sm">
-              No Image
-            </div>
-          )}
-          <div className="p-3">
-            <p className="text-sm font-medium truncate">{movie.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {movie.release_date?.split('-')[0]}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
+import MovieCard from '@/components/movie-card';
 
 export default function Results() {
   const [searchParams] = useSearchParams();
