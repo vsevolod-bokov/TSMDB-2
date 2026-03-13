@@ -1,23 +1,57 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { tmdbFetch } from '@/tmdb';
 import { db } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import MovieCard from '@/components/movie-card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/original';
 
 function MovieRow({ title, movies, loading }) {
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  function updateScrollButtons() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }
+
+  useEffect(() => {
+    updateScrollButtons();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateScrollButtons);
+    const observer = new ResizeObserver(updateScrollButtons);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener('scroll', updateScrollButtons);
+      observer.disconnect();
+    };
+  }, [movies]);
+
+  function scroll(direction) {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction === 'left' ? -el.clientWidth : el.clientWidth, behavior: 'smooth' });
+  }
+
+  // 2 cols mobile, 3 cols sm, 4 cols md, 5 cols lg+
+  const cardClass = 'w-[calc(50%-6px)] sm:w-[calc(33.333%-8px)] md:w-[calc(25%-9px)] lg:w-[calc(20%-10px)] shrink-0';
+
   if (loading) {
     return (
       <section>
         <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="flex gap-3 overflow-hidden px-1 py-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="aspect-[2/3] bg-muted rounded-lg animate-pulse" />
+            <div key={i} className={`${cardClass} aspect-[2/3] bg-muted rounded-lg animate-pulse`} />
           ))}
         </div>
       </section>
@@ -27,12 +61,40 @@ function MovieRow({ title, movies, loading }) {
   if (!movies?.length) return null;
 
   return (
-    <section>
+    <section className="relative group/row">
       <h2 className="text-xl font-semibold mb-4">{title}</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {movies.map((movie) => (
-          <MovieCard key={movie.id} movie={movie} />
-        ))}
+      <div className="relative">
+        {canScrollLeft && (
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover/row:opacity-100 transition-opacity shadow-lg h-10 w-10 rounded-full"
+            onClick={() => scroll('left')}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+        )}
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto scroll-smooth px-1 py-2"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {movies.map((movie) => (
+            <div key={movie.id} className={cardClass}>
+              <MovieCard movie={movie} />
+            </div>
+          ))}
+        </div>
+        {canScrollRight && (
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover/row:opacity-100 transition-opacity shadow-lg h-10 w-10 rounded-full"
+            onClick={() => scroll('right')}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        )}
       </div>
     </section>
   );
@@ -42,9 +104,9 @@ export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [nowPlaying, setNowPlaying] = useState([]);
-  const [favorites, setFavorites] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [loadingNow, setLoadingNow] = useState(true);
-  const [loadingFavs, setLoadingFavs] = useState(true);
+  const [loadingRecs, setLoadingRecs] = useState(true);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -57,17 +119,31 @@ export default function Home() {
     if (!user) return;
     getDocs(collection(db, 'users', user.uid, 'favorites'))
       .then(async (snapshot) => {
-        const favIds = snapshot.docs.map((doc) => doc.id);
-        if (!favIds.length) {
-          setFavorites([]);
+        const favIds = new Set(snapshot.docs.map((doc) => doc.id));
+        if (!favIds.size) {
+          setRecommendations([]);
           return;
         }
-        const movies = await Promise.all(
-          favIds.slice(0, 6).map((id) => tmdbFetch(`/movie/${id}?language=en-US`))
+        // Pick up to 5 random favorites to fetch recommendations from
+        const ids = [...favIds];
+        const shuffled = ids.sort(() => Math.random() - 0.5).slice(0, 5);
+        const results = await Promise.all(
+          shuffled.map((id) => tmdbFetch(`/movie/${id}/recommendations?language=en-US&page=1`))
         );
-        setFavorites(movies.filter((m) => m.id));
+        // Merge, deduplicate, and exclude movies already in favorites
+        const seen = new Set();
+        const merged = [];
+        for (const data of results) {
+          for (const movie of data.results || []) {
+            if (!seen.has(movie.id) && !favIds.has(String(movie.id))) {
+              seen.add(movie.id);
+              merged.push(movie);
+            }
+          }
+        }
+        setRecommendations(merged.slice(0, 12));
       })
-      .finally(() => setLoadingFavs(false));
+      .finally(() => setLoadingRecs(false));
   }, [user]);
 
   const randomBackdrop = useMemo(() => {
@@ -104,7 +180,7 @@ export default function Home() {
               Welcome back, {user?.displayName || 'Movie Fan'}!
             </h1>
             <p className="text-muted-foreground">
-              Discover what's playing in theaters and revisit your favorites.
+              Discover what's playing and get recommendations based on your favorites.
             </p>
           </div>
           <form onSubmit={handleSearch} className="max-w-md">
@@ -123,7 +199,7 @@ export default function Home() {
       </div>
 
       <MovieRow title="New in Theaters" movies={nowPlaying} loading={loadingNow} />
-      <MovieRow title="Your Favorites" movies={favorites} loading={loadingFavs} />
+      <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} />
     </div>
   );
 }
