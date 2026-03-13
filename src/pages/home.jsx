@@ -1,43 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { tmdbFetch } from '@/tmdb';
 import { db } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import { Card, CardContent } from '@/components/ui/card';
+import MovieCard from '@/components/movie-card';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 
-const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/original';
-
-function MovieCard({ movie }) {
-  return (
-    <Link to={`/film/${movie.id}`}>
-      <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all">
-        <CardContent className="p-0">
-          {movie.poster_path ? (
-            <img
-              src={`${TMDB_IMG}${movie.poster_path}`}
-              alt={movie.title}
-              className="w-full aspect-[2/3] object-cover"
-            />
-          ) : (
-            <div className="w-full aspect-[2/3] bg-muted flex items-center justify-center text-muted-foreground text-sm">
-              No Image
-            </div>
-          )}
-          <div className="p-3">
-            <p className="text-sm font-medium truncate">{movie.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {movie.release_date?.split('-')[0]}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
 
 function MovieRow({ title, movies, loading }) {
   if (loading) {
