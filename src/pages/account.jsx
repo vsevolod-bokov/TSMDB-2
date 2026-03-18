@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { updateProfile, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { updateProfile, verifyBeforeUpdateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ export default function Account() {
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [emailPassword, setEmailPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
@@ -67,16 +68,16 @@ export default function Account() {
     setSaving(true);
     setEmailMsg(null);
     try {
-      if (!currentPassword) {
+      if (!emailPassword) {
         setEmailMsg({ type: 'error', text: 'Current password is required to change email.' });
         setSaving(false);
         return;
       }
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      const credential = EmailAuthProvider.credential(user.email, emailPassword);
       await reauthenticateWithCredential(user, credential);
-      await updateEmail(user, email);
-      setCurrentPassword('');
-      setEmailMsg({ type: 'success', text: 'Email updated.' });
+      await verifyBeforeUpdateEmail(user, email);
+      setEmailPassword('');
+      setEmailMsg({ type: 'success', text: 'A verification email has been sent to your new address. Please check your inbox and click the link to confirm the change.' });
     } catch (err) {
       setEmailMsg({ type: 'error', text: err.message });
     }
@@ -265,8 +266,8 @@ export default function Account() {
               <Label>Current Password</Label>
               <Input
                 type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
+                value={emailPassword}
+                onChange={(e) => setEmailPassword(e.target.value)}
                 placeholder="Required to confirm changes"
               />
             </div>
