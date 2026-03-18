@@ -8,7 +8,7 @@ export const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorited }) {
   return (
     <Link to={`/film/${movie.id}`} className="relative group">
-      <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all">
+      <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all py-0 gap-0">
         <CardContent className="p-0">
           <div className="relative">
             {movie.poster_path ? (
