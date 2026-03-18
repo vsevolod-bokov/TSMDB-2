@@ -173,7 +173,7 @@ export default function Browse() {
     if (isFirstPage) setLoading(true);
     else setLoadingMore(true);
 
-    let endpoint = `/discover/movie?language=en-US&page=${page}&sort_by=${sortBy}`;
+    let endpoint = `/discover/movie?language=en-US&page=${page}&sort_by=${sortBy}&with_original_language=en`;
     if (selectedGenre !== null) {
       endpoint += `&with_genres=${selectedGenre}`;
     }

@@ -115,7 +115,7 @@ export default function Home() {
 
   useEffect(() => {
     tmdbFetch('/movie/now_playing?language=en-US&page=1&region=US')
-      .then((data) => setNowPlaying((data.results || []).filter((m) => m.poster_path).slice(0, 12)))
+      .then((data) => setNowPlaying((data.results || []).filter((m) => m.poster_path && m.original_language === 'en').slice(0, 12)))
       .catch((err) => console.error('[Home] Failed to load now playing:', err))
       .finally(() => setLoadingNow(false));
   }, []);
@@ -140,7 +140,7 @@ export default function Home() {
         const merged = [];
         for (const data of results) {
           for (const movie of data.results || []) {
-            if (!seen.has(movie.id) && !favIds.has(String(movie.id)) && movie.poster_path) {
+            if (!seen.has(movie.id) && !favIds.has(String(movie.id)) && movie.poster_path && movie.original_language === 'en') {
               seen.add(movie.id);
               merged.push(movie);
             }

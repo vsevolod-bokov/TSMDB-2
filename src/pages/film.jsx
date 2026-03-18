@@ -91,7 +91,7 @@ export default function Film() {
         setMovie(movieData);
         setWatchProviders(providersData.results?.US || null);
         setCast(creditsData.cast?.slice(0, 12) || []);
-        setSimilar((similarData.results || []).filter((m) => m.poster_path).slice(0, 12));
+        setSimilar((similarData.results || []).filter((m) => m.poster_path && m.original_language === 'en').slice(0, 12));
       })
       .catch((err) => {
         console.error('[Film] Failed to load movie details:', err);
