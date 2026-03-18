@@ -43,7 +43,7 @@ export default function Navbar() {
           </Button>
         </div>
 
-        <form onSubmit={handleSearch} className="flex-1 max-w-md mx-auto">
+        <form onSubmit={handleSearch} className="flex-1 mx-4">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -59,7 +59,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/account" className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
+              <Avatar className="h-9 w-9">
                 <AvatarImage src={user?.photoURL} alt={user?.displayName} />
                 <AvatarFallback className="text-xs">
                   {user?.displayName?.charAt(0)?.toUpperCase() || <User className="h-3 w-3" />}
