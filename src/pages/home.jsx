@@ -111,9 +111,12 @@ export default function Home() {
   const [loadingRecs, setLoadingRecs] = useState(true);
   const [query, setQuery] = useState('');
 
+  useEffect(() => { document.title = 'Home - TSMDB'; }, []);
+
   useEffect(() => {
     tmdbFetch('/movie/now_playing?language=en-US&page=1&region=US')
-      .then((data) => setNowPlaying(data.results?.slice(0, 12) || []))
+      .then((data) => setNowPlaying((data.results || []).filter((m) => m.poster_path).slice(0, 12)))
+      .catch((err) => console.error('[Home] Failed to load now playing:', err))
       .finally(() => setLoadingNow(false));
   }, []);
 
@@ -137,7 +140,7 @@ export default function Home() {
         const merged = [];
         for (const data of results) {
           for (const movie of data.results || []) {
-            if (!seen.has(movie.id) && !favIds.has(String(movie.id))) {
+            if (!seen.has(movie.id) && !favIds.has(String(movie.id)) && movie.poster_path) {
               seen.add(movie.id);
               merged.push(movie);
             }
@@ -145,6 +148,7 @@ export default function Home() {
         }
         setRecommendations(merged.slice(0, 12));
       })
+      .catch((err) => console.error('[Home] Failed to load recommendations:', err))
       .finally(() => setLoadingRecs(false));
   }, [user]);
 

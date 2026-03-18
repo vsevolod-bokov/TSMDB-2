@@ -71,9 +71,16 @@ export default function Film() {
   const [watchProviders, setWatchProviders] = useState(null);
   const [cast, setCast] = useState([]);
   const [similar, setSimilar] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (movie?.title) document.title = `${movie.title} - TSMDB`;
+    else document.title = 'Film - TSMDB';
+  }, [movie]);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     Promise.all([
       tmdbFetch(`/movie/${id}?language=en-US`),
       tmdbFetch(`/movie/${id}/watch/providers`),
@@ -84,7 +91,11 @@ export default function Film() {
         setMovie(movieData);
         setWatchProviders(providersData.results?.US || null);
         setCast(creditsData.cast?.slice(0, 12) || []);
-        setSimilar(similarData.results?.slice(0, 12) || []);
+        setSimilar((similarData.results || []).filter((m) => m.poster_path).slice(0, 12));
+      })
+      .catch((err) => {
+        console.error('[Film] Failed to load movie details:', err);
+        setError(err.message);
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -101,7 +112,7 @@ export default function Film() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="relative -mx-4 -mt-6 h-64 sm:h-80 bg-muted animate-pulse rounded-b-lg" />
+        <div className="relative -mx-4 -mt-6 h-64 sm:h-80 bg-muted animate-pulse" />
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-48 aspect-[2/3] bg-muted rounded-lg animate-pulse shrink-0" />
           <div className="flex-1 space-y-4">
@@ -110,6 +121,17 @@ export default function Film() {
             <div className="h-20 w-full bg-muted rounded animate-pulse" />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-muted-foreground mb-4">Failed to load movie details.</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
       </div>
     );
   }
@@ -131,13 +153,13 @@ export default function Film() {
   return (
     <div className="space-y-6">
       {movie.backdrop_path && (
-        <div className="relative -mx-4 -mt-6 overflow-hidden rounded-b-lg">
+        <div className="relative -mx-4 -mt-6 overflow-hidden">
           <img
             src={`${TMDB_BACKDROP}${movie.backdrop_path}`}
             alt={movie.title}
             className="w-full h-64 sm:h-80 object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background from-10% via-background/60 via-40% to-transparent" />
         </div>
       )}
 
@@ -299,12 +321,13 @@ export default function Film() {
           {movie.genres?.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {movie.genres.map((genre) => (
-                <span
+                <Link
                   key={genre.id}
-                  className="px-3 py-1 text-xs rounded-full bg-secondary text-secondary-foreground"
+                  to={`/browse?genre=${genre.id}`}
+                  className="px-3 py-1 text-xs rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                 >
                   {genre.name}
-                </span>
+                </Link>
               ))}
             </div>
           )}

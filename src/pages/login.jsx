@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnUserAuthenticated } from '@firebase-oss/ui-react';
@@ -11,6 +12,7 @@ export default function Login() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => { document.title = 'Login - TSMDB'; }, []);
   useOnUserAuthenticated(() => navigate('/'));
 
   if (loading) {

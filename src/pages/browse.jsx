@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigationType } from 'react-router-dom';
+import { useNavigationType, useSearchParams } from 'react-router-dom';
 import { useFavorites } from '@/hooks/useFavorites';
 import { tmdbFetch } from '@/tmdb';
 import {
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import MovieCard from '@/components/movie-card';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
 const CACHE_KEY = 'browse_cache';
@@ -64,16 +65,25 @@ function clearCache() {
   sessionStorage.removeItem(CACHE_KEY);
 }
 
+const RELOAD_KEY = 'browse_reloading';
+
 export default function Browse() {
   const { toggleFavorite, isFavorited } = useFavorites();
   const navType = useNavigationType();
-  const cache = useRef(navType === 'POP' ? loadCache() : null).current;
-  // Clear cache on direct navigation (nav link click)
-  if (navType !== 'POP') clearCache();
+  const [searchParams] = useSearchParams();
+  const genreParam = searchParams.get('genre');
+  const isReload = useRef((() => {
+    const flag = sessionStorage.getItem(RELOAD_KEY);
+    sessionStorage.removeItem(RELOAD_KEY);
+    return flag === 'true';
+  })()).current;
+  const shouldRestore = navType === 'POP' || (isReload && !genreParam);
+  const cache = useRef(shouldRestore ? loadCache() : null).current;
+  if (!shouldRestore) clearCache();
   const [movies, setMovies] = useState(cache?.movies || []);
   const [loading, setLoading] = useState(!cache);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [selectedGenre, setSelectedGenre] = useState(cache?.selectedGenre ?? null);
+  const [selectedGenre, setSelectedGenre] = useState(cache?.selectedGenre ?? (genreParam ? Number(genreParam) : null));
   const [sortBy, setSortBy] = useState(cache?.sortBy || 'popularity.desc');
   const [page, setPage] = useState(cache?.page || 1);
   const [totalPages, setTotalPages] = useState(cache?.totalPages || 1);
@@ -81,14 +91,33 @@ export default function Browse() {
   const restoredScroll = useRef(false);
   const skipFetch = useRef(!!cache);
   const [showMobileGenre, setShowMobileGenre] = useState(true);
+  const [error, setError] = useState(null);
   const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const genre = GENRES.find((g) => g.id === selectedGenre);
+    document.title = selectedGenre !== null && genre ? `${genre.name} - TSMDB` : 'Browse - TSMDB';
+  }, [selectedGenre]);
+
+  // Set reload flag on page unload (fires on refresh, not on SPA navigation)
+  useEffect(() => {
+    const onBeforeUnload = () => sessionStorage.setItem(RELOAD_KEY, 'true');
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
 
   // Restore scroll position after cached movies render
   useEffect(() => {
     if (cache && !restoredScroll.current && movies.length > 0) {
       restoredScroll.current = true;
+      const targetY = cache.scrollY || 0;
       requestAnimationFrame(() => {
-        window.scrollTo(0, cache.scrollY || 0);
+        requestAnimationFrame(() => {
+          window.scrollTo(0, targetY);
+          if (Math.abs(window.scrollY - targetY) > 10) {
+            setTimeout(() => window.scrollTo(0, targetY), 100);
+          }
+        });
       });
     }
   }, [movies]);
@@ -114,10 +143,21 @@ export default function Browse() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Save scrollY to cache on unmount
+  useEffect(() => {
+    return () => {
+      const existing = loadCache();
+      if (existing) {
+        existing.scrollY = lastScrollY.current;
+        saveCache(existing);
+      }
+    };
+  }, []);
+
   // Save cache whenever state changes
   useEffect(() => {
     if (!loading) {
-      saveCache({ movies, selectedGenre, sortBy, page, totalPages, scrollY: window.scrollY });
+      saveCache({ movies, selectedGenre, sortBy, page, totalPages, scrollY: lastScrollY.current });
     }
   }, [movies, selectedGenre, sortBy, page, totalPages, loading]);
 
@@ -139,7 +179,7 @@ export default function Browse() {
     }
     tmdbFetch(endpoint)
       .then((data) => {
-        const results = data.results || [];
+        const results = (data.results || []).filter((m) => m.poster_path);
         if (isFirstPage) {
           setMovies(results);
         } else {
@@ -150,6 +190,11 @@ export default function Browse() {
           });
         }
         setTotalPages(Math.min(data.total_pages || 1, 500));
+        setError(null);
+      })
+      .catch((err) => {
+        console.error('[Browse] Failed to load movies:', err);
+        if (isFirstPage) setError(err.message);
       })
       .finally(() => {
         setLoading(false);
@@ -267,6 +312,13 @@ export default function Browse() {
               {Array.from({ length: 20 }).map((_, i) => (
                 <div key={i} className="aspect-[2/3] bg-muted rounded-lg animate-pulse" />
               ))}
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+              <p className="text-muted-foreground">Failed to load movies.</p>
+              <Button variant="outline" onClick={() => { setError(null); setPage(1); }}>
+                Try Again
+              </Button>
             </div>
           ) : !movies.length ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">

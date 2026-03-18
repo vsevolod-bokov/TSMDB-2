@@ -20,6 +20,9 @@ export function FavoritesProvider({ children }) {
       .then((snapshot) => {
         setFavoriteIds(new Set(snapshot.docs.map((d) => d.id)));
       })
+      .catch((err) => {
+        console.error('[Favorites] Failed to load favorite IDs:', err);
+      })
       .finally(() => setLoading(false));
   }, [user]);
 
@@ -33,16 +36,20 @@ export function FavoritesProvider({ children }) {
       if (!user) return;
       const id = String(movieId);
       const favRef = doc(db, 'users', user.uid, 'favorites', id);
-      if (favoriteIds.has(id)) {
-        await deleteDoc(favRef);
-        setFavoriteIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-      } else {
-        await setDoc(favRef, { addedAt: new Date() });
-        setFavoriteIds((prev) => new Set(prev).add(id));
+      try {
+        if (favoriteIds.has(id)) {
+          await deleteDoc(favRef);
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        } else {
+          await setDoc(favRef, { addedAt: new Date() });
+          setFavoriteIds((prev) => new Set(prev).add(id));
+        }
+      } catch (err) {
+        console.error('[Favorites] Failed to toggle favorite:', err);
       }
     },
     [user, favoriteIds]

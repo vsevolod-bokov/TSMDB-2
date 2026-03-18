@@ -68,11 +68,19 @@ function clearCache() {
   sessionStorage.removeItem(CACHE_KEY);
 }
 
+const RELOAD_KEY = 'favorites_reloading';
+
 export default function Favorites() {
   const { user } = useAuth();
   const navType = useNavigationType();
-  const cache = useRef(navType === 'POP' ? loadCache() : null).current;
-  if (navType !== 'POP') clearCache();
+  const isReload = useRef((() => {
+    const flag = sessionStorage.getItem(RELOAD_KEY);
+    sessionStorage.removeItem(RELOAD_KEY);
+    return flag === 'true';
+  })()).current;
+  const shouldRestore = navType === 'POP' || isReload;
+  const cache = useRef(shouldRestore ? loadCache() : null).current;
+  if (!shouldRestore) clearCache();
 
   const [movies, setMovies] = useState(cache?.movies || []);
   const [loading, setLoading] = useState(!cache);
@@ -80,9 +88,19 @@ export default function Favorites() {
   const [sortBy, setSortBy] = useState(cache?.sortBy || 'title-asc');
   const [visibleCount, setVisibleCount] = useState(cache?.visibleCount || PAGE_SIZE);
   const [showMobileGenre, setShowMobileGenre] = useState(true);
+  const [error, setError] = useState(null);
   const lastScrollY = useRef(0);
   const sentinelRef = useRef(null);
   const restoredScroll = useRef(false);
+
+  useEffect(() => { document.title = 'Favorites - TSMDB'; }, []);
+
+  // Set reload flag on page unload (fires on refresh, not on SPA navigation)
+  useEffect(() => {
+    const onBeforeUnload = () => sessionStorage.setItem(RELOAD_KEY, 'true');
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
 
   // Track scroll direction for mobile genre dropdown
   useEffect(() => {
@@ -109,16 +127,33 @@ export default function Favorites() {
   useEffect(() => {
     if (cache && !restoredScroll.current && movies.length > 0) {
       restoredScroll.current = true;
+      const targetY = cache.scrollY || 0;
       requestAnimationFrame(() => {
-        window.scrollTo(0, cache.scrollY || 0);
+        requestAnimationFrame(() => {
+          window.scrollTo(0, targetY);
+          if (Math.abs(window.scrollY - targetY) > 10) {
+            setTimeout(() => window.scrollTo(0, targetY), 100);
+          }
+        });
       });
     }
   }, [movies]);
 
+  // Save scrollY to cache on unmount
+  useEffect(() => {
+    return () => {
+      const existing = loadCache();
+      if (existing) {
+        existing.scrollY = lastScrollY.current;
+        saveCache(existing);
+      }
+    };
+  }, []);
+
   // Save cache whenever state changes
   useEffect(() => {
     if (!loading) {
-      saveCache({ movies, selectedGenre, sortBy, visibleCount, scrollY: window.scrollY });
+      saveCache({ movies, selectedGenre, sortBy, visibleCount, scrollY: lastScrollY.current });
     }
   }, [movies, selectedGenre, sortBy, visibleCount, loading]);
 
@@ -135,14 +170,22 @@ export default function Favorites() {
         const results = await Promise.all(
           favIds.map((id) => tmdbFetch(`/movie/${id}?language=en-US`))
         );
-        setMovies(results.filter((m) => m.id));
+        setMovies(results.filter((m) => m.id && m.poster_path));
+      })
+      .catch((err) => {
+        console.error('[Favorites] Failed to load favorites:', err);
+        setError(err.message);
       })
       .finally(() => setLoading(false));
   }, [user]);
 
   async function handleRemove(movieId) {
-    await deleteDoc(doc(db, 'users', user.uid, 'favorites', String(movieId)));
-    setMovies((prev) => prev.filter((m) => m.id !== movieId));
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'favorites', String(movieId)));
+      setMovies((prev) => prev.filter((m) => m.id !== movieId));
+    } catch (err) {
+      console.error('[Favorites] Failed to remove favorite:', err);
+    }
   }
 
   const filteredAndSorted = useMemo(() => {
@@ -227,6 +270,20 @@ export default function Favorites() {
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="aspect-[2/3] bg-muted rounded-lg animate-pulse" />
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Your Favorites</h1>
+        <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+          <p className="text-muted-foreground">Failed to load your favorites.</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
         </div>
       </div>
     );
