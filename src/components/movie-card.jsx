@@ -23,7 +23,7 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
               </div>
             )}
             {movie.vote_average > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm px-2 py-1 flex items-center gap-1 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
+              <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm px-2 py-1 flex items-center gap-1 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100">
                 <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
                 <span className="text-xs font-medium text-white">{movie.vote_average.toFixed(1)}</span>
               </div>
@@ -41,7 +41,7 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
         <Button
           variant="destructive"
           size="icon-xs"
-          className="absolute top-2 right-2 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+          className="absolute top-2 right-2 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -55,7 +55,7 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
         <Button
           variant="secondary"
           size="icon-xs"
-          className={`absolute top-2 right-2 transition-opacity ${isFavorited ? 'opacity-100' : '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'}`}
+          className={`absolute top-2 right-2 transition-opacity ${isFavorited ? 'opacity-100' : 'pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100'}`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
