@@ -153,7 +153,7 @@ export default function Results() {
 
     tmdbFetch(`/search/movie?query=${encodeURIComponent(query)}&language=en-US&page=${page}`)
       .then((data) => {
-        const results = (data.results || []).filter((m) => m.poster_path);
+        const results = (data.results || []).filter((m) => m.poster_path && m.original_language === 'en');
         if (isFirstPage) {
           setMovies(results);
         } else {
