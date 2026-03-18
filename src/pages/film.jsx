@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { db } from '@/firebase';
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { useFavorites } from '@/hooks/useFavorites';
 import { tmdbFetch } from '@/tmdb';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -67,11 +65,9 @@ function dedupeProviders(providers) {
 
 export default function Film() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { toggleFavorite, isFavorited } = useFavorites();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [favLoading, setFavLoading] = useState(false);
   const [watchProviders, setWatchProviders] = useState(null);
   const [cast, setCast] = useState([]);
   const [similar, setSimilar] = useState([]);
@@ -83,34 +79,17 @@ export default function Film() {
       tmdbFetch(`/movie/${id}/watch/providers`),
       tmdbFetch(`/movie/${id}/credits?language=en-US`),
       tmdbFetch(`/movie/${id}/similar?language=en-US&page=1`),
-      user ? getDoc(doc(db, 'users', user.uid, 'favorites', id)) : null,
     ])
-      .then(([movieData, providersData, creditsData, similarData, favSnap]) => {
+      .then(([movieData, providersData, creditsData, similarData]) => {
         setMovie(movieData);
         setWatchProviders(providersData.results?.US || null);
         setCast(creditsData.cast?.slice(0, 12) || []);
         setSimilar(similarData.results?.slice(0, 12) || []);
-        if (favSnap?.exists()) setIsFavorited(true);
       })
       .finally(() => setLoading(false));
-  }, [id, user]);
+  }, [id]);
 
-  async function toggleFavorite() {
-    if (!user) return;
-    setFavLoading(true);
-    const favRef = doc(db, 'users', user.uid, 'favorites', String(id));
-    try {
-      if (isFavorited) {
-        await deleteDoc(favRef);
-        setIsFavorited(false);
-      } else {
-        await setDoc(favRef, { addedAt: new Date() });
-        setIsFavorited(true);
-      }
-    } finally {
-      setFavLoading(false);
-    }
-  }
+  const favorited = isFavorited(id);
 
   function formatRuntime(minutes) {
     if (!minutes) return null;
@@ -207,14 +186,13 @@ export default function Film() {
           </div>
 
           <Button
-            variant={isFavorited ? 'default' : 'outline'}
-            disabled={favLoading}
-            onClick={toggleFavorite}
+            variant={favorited ? 'default' : 'outline'}
+            onClick={() => toggleFavorite(id)}
           >
             <Heart
-              className={`h-4 w-4 mr-2 ${isFavorited ? 'fill-current text-red-500' : ''}`}
+              className={`h-4 w-4 mr-2 ${favorited ? 'fill-current text-red-500' : ''}`}
             />
-            {isFavorited ? 'Favorited' : 'Add to Favorites'}
+            {favorited ? 'Favorited' : 'Add to Favorites'}
           </Button>
 
           {watchProviders && (watchProviders.flatrate?.length || watchProviders.rent?.length || watchProviders.buy?.length) ? (
@@ -368,7 +346,7 @@ export default function Film() {
             <h2 className="text-xl font-semibold mb-4">Similar Movies</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {similar.map((m) => (
-                <MovieCard key={m.id} movie={m} />
+                <MovieCard key={m.id} movie={m} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(m.id)} />
               ))}
             </div>
           </div>
