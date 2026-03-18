@@ -110,7 +110,7 @@ export default function Home() {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
-    tmdbFetch('/movie/now_playing?language=en-US&page=1')
+    tmdbFetch('/movie/now_playing?language=en-US&page=1&region=US')
       .then((data) => setNowPlaying(data.results?.slice(0, 12) || []))
       .finally(() => setLoadingNow(false));
   }, []);
