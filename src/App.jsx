@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom'
 import Home from './pages/home.jsx'
 import Login from './pages/login.jsx'
 import Browse from './pages/browse.jsx'
@@ -12,10 +13,34 @@ import { ui } from './firebase.js';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import ProtectedRoute from './components/protected-route.jsx';
 
+// Scroll to top on route change, except browse/favorites which handle their own restoration
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  const navType = useNavigationType();
+
+  useEffect(() => {
+    // Disable browser auto scroll restoration
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  useEffect(() => {
+    // Let browse and favorites handle their own scroll on back/forward
+    const selfManaged = ['/browse', '/favorites'];
+    if (navType === 'POP' && selfManaged.includes(pathname)) return;
+
+    window.scrollTo(0, 0);
+  }, [pathname, navType]);
+
+  return null;
+}
+
 function App() {
   return (
     <FirebaseUIProvider ui={ui}>
     <AuthProvider>
+    <ScrollToTop />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route element={<ProtectedRoute />}>

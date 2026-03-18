@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigationType } from 'react-router-dom';
 import { tmdbFetch } from '@/tmdb';
 import {
   Select,
@@ -63,7 +64,10 @@ function clearCache() {
 }
 
 export default function Browse() {
-  const cache = useRef(loadCache()).current;
+  const navType = useNavigationType();
+  const cache = useRef(navType === 'POP' ? loadCache() : null).current;
+  // Clear cache on direct navigation (nav link click)
+  if (navType !== 'POP') clearCache();
   const [movies, setMovies] = useState(cache?.movies || []);
   const [loading, setLoading] = useState(!cache);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -74,6 +78,8 @@ export default function Browse() {
   const sentinelRef = useRef(null);
   const restoredScroll = useRef(false);
   const skipFetch = useRef(!!cache);
+  const [showMobileGenre, setShowMobileGenre] = useState(true);
+  const lastScrollY = useRef(0);
 
   // Restore scroll position after cached movies render
   useEffect(() => {
@@ -85,13 +91,20 @@ export default function Browse() {
     }
   }, [movies]);
 
-  // Save state to sessionStorage on scroll
+  // Track scroll direction for mobile genre dropdown
   useEffect(() => {
     let ticking = false;
     function onScroll() {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y < lastScrollY.current || y < 50) {
+          setShowMobileGenre(true);
+        } else if (y > lastScrollY.current) {
+          setShowMobileGenre(false);
+        }
+        lastScrollY.current = y;
         ticking = false;
       });
     }
@@ -147,6 +160,7 @@ export default function Browse() {
     clearCache();
     setSelectedGenre(genreId);
     setPage(1);
+    window.scrollTo(0, 0);
   }
 
   function handleSortChange(value) {
@@ -178,6 +192,9 @@ export default function Browse() {
 
   return (
     <div className="space-y-6">
+      {/* Spacer for fixed mobile genre dropdown */}
+      <div className="md:hidden h-10" />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Browse Movies</h1>
         <div className="flex items-center gap-2">
@@ -199,7 +216,7 @@ export default function Browse() {
 
       <div className="flex gap-6">
         {/* Genre sidebar */}
-        <aside className="hidden md:flex flex-col gap-1 min-w-[160px]">
+        <aside className="hidden md:flex flex-col gap-1 min-w-[160px] sticky top-[4.5rem] self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto">
           {GENRES.map((genre) => {
             const isActive = selectedGenre === genre.id;
             return (
@@ -218,13 +235,17 @@ export default function Browse() {
           })}
         </aside>
 
-        {/* Mobile genre selector */}
-        <div className="md:hidden w-full">
+        {/* Mobile genre selector — sticky, hides on scroll down, shows on scroll up */}
+        <div
+          className={`md:hidden fixed top-[6rem] left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-2 border-b border-border transition-transform duration-300 ${
+            showMobileGenre ? 'translate-y-0' : '-translate-y-full'
+          }`}
+        >
           <Select
             value={selectedGenre === null ? 'all' : String(selectedGenre)}
             onValueChange={(v) => handleGenreChange(v === 'all' ? null : Number(v))}
           >
-            <SelectTrigger className="w-full mb-4">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Genre" />
             </SelectTrigger>
             <SelectContent>
