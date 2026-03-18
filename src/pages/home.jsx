@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useFavorites } from '@/hooks/useFavorites';
 import { tmdbFetch } from '@/tmdb';
 import { db } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -11,7 +12,7 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/original';
 
-function MovieRow({ title, movies, loading }) {
+function MovieRow({ title, movies, loading, onFavoriteToggle, isFavorited }) {
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -81,7 +82,7 @@ function MovieRow({ title, movies, loading }) {
         >
           {movies.map((movie) => (
             <div key={movie.id} className={cardClass}>
-              <MovieCard movie={movie} />
+              <MovieCard movie={movie} onFavoriteToggle={onFavoriteToggle} isFavorited={isFavorited?.(movie.id)} />
             </div>
           ))}
         </div>
@@ -102,6 +103,7 @@ function MovieRow({ title, movies, loading }) {
 
 export default function Home() {
   const { user } = useAuth();
+  const { toggleFavorite, isFavorited } = useFavorites();
   const navigate = useNavigate();
   const [nowPlaying, setNowPlaying] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -198,8 +200,8 @@ export default function Home() {
         </div>
       </div>
 
-      <MovieRow title="New in Theaters" movies={nowPlaying} loading={loadingNow} />
-      <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} />
+      <MovieRow title="New in Theaters" movies={nowPlaying} loading={loadingNow} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
+      <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
     </div>
   );
 }

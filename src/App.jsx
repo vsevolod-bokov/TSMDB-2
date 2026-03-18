@@ -11,6 +11,7 @@ import Lost from './pages/lost.jsx'
 import { FirebaseUIProvider } from '@firebase-oss/ui-react';
 import { ui } from './firebase.js';
 import { AuthProvider } from './hooks/useAuth.jsx';
+import { FavoritesProvider } from './hooks/useFavorites.jsx';
 import ProtectedRoute from './components/protected-route.jsx';
 
 // Scroll to top on route change, except browse/favorites which handle their own restoration
@@ -40,6 +41,7 @@ function App() {
   return (
     <FirebaseUIProvider ui={ui}>
     <AuthProvider>
+    <FavoritesProvider>
     <ScrollToTop />
     <Routes>
       <Route path="/login" element={<Login />} />
@@ -53,6 +55,7 @@ function App() {
       </Route>
       <Route path="*" element={<Lost />} />
     </Routes>
+    </FavoritesProvider>
     </AuthProvider>
     </FirebaseUIProvider>
   )

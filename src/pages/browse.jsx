@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigationType } from 'react-router-dom';
+import { useFavorites } from '@/hooks/useFavorites';
 import { tmdbFetch } from '@/tmdb';
 import {
   Select,
@@ -64,6 +65,7 @@ function clearCache() {
 }
 
 export default function Browse() {
+  const { toggleFavorite, isFavorited } = useFavorites();
   const navType = useNavigationType();
   const cache = useRef(navType === 'POP' ? loadCache() : null).current;
   // Clear cache on direct navigation (nav link click)
@@ -274,7 +276,7 @@ export default function Browse() {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {movies.map((movie) => (
-                  <MovieCard key={movie.id} movie={movie} />
+                  <MovieCard key={movie.id} movie={movie} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(movie.id)} />
                 ))}
               </div>
               {/* Sentinel for infinite scroll */}

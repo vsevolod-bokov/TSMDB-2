@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Heart } from 'lucide-react';
 
 export const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 
-export default function MovieCard({ movie, onRemove }) {
+export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorited }) {
   return (
     <Link to={`/film/${movie.id}`} className="relative group">
       <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all">
@@ -41,6 +41,20 @@ export default function MovieCard({ movie, onRemove }) {
           }}
         >
           <Trash2 className="h-3 w-3" />
+        </Button>
+      )}
+      {!onRemove && onFavoriteToggle && (
+        <Button
+          variant="secondary"
+          size="icon-xs"
+          className={`absolute top-2 right-2 transition-opacity ${isFavorited ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onFavoriteToggle(movie.id);
+          }}
+        >
+          <Heart className={`h-3 w-3 ${isFavorited ? 'fill-current text-red-500' : ''}`} />
         </Button>
       )}
     </Link>
