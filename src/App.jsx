@@ -26,8 +26,8 @@ function ScrollToTop() {
   }, []);
 
   useEffect(() => {
-    // Let browse and favorites handle their own scroll on back/forward
-    const selfManaged = ['/browse', '/favorites'];
+    // Let browse, favorites, and results handle their own scroll on back/forward
+    const selfManaged = ['/browse', '/favorites', '/results'];
     if (navType === 'POP' && selfManaged.includes(pathname)) return;
 
     window.scrollTo(0, 0);
