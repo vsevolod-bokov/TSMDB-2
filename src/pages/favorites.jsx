@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Link, useNavigationType } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/firebase';
 import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
@@ -13,7 +13,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import MovieCard from '@/components/movie-card';
-import { Heart } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
+
+const CACHE_KEY = 'favorites_cache';
+const PAGE_SIZE = 20;
 
 const GENRES = [
   { id: null, name: 'All' },
@@ -46,15 +49,82 @@ const SORT_OPTIONS = [
   { value: 'rating-asc', label: 'Rating (Lowest)' },
 ];
 
+function loadCache() {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCache(data) {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch { /* ignore quota errors */ }
+}
+
+function clearCache() {
+  sessionStorage.removeItem(CACHE_KEY);
+}
+
 export default function Favorites() {
   const { user } = useAuth();
-  const [movies, setMovies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedGenre, setSelectedGenre] = useState(null);
-  const [sortBy, setSortBy] = useState('title-asc');
+  const navType = useNavigationType();
+  const cache = useRef(navType === 'POP' ? loadCache() : null).current;
+  if (navType !== 'POP') clearCache();
 
+  const [movies, setMovies] = useState(cache?.movies || []);
+  const [loading, setLoading] = useState(!cache);
+  const [selectedGenre, setSelectedGenre] = useState(cache?.selectedGenre ?? null);
+  const [sortBy, setSortBy] = useState(cache?.sortBy || 'title-asc');
+  const [visibleCount, setVisibleCount] = useState(cache?.visibleCount || PAGE_SIZE);
+  const [showMobileGenre, setShowMobileGenre] = useState(true);
+  const lastScrollY = useRef(0);
+  const sentinelRef = useRef(null);
+  const restoredScroll = useRef(false);
+
+  // Track scroll direction for mobile genre dropdown
   useEffect(() => {
-    if (!user) return;
+    let ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y < lastScrollY.current || y < 50) {
+          setShowMobileGenre(true);
+        } else if (y > lastScrollY.current) {
+          setShowMobileGenre(false);
+        }
+        lastScrollY.current = y;
+        ticking = false;
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Restore scroll position from cache
+  useEffect(() => {
+    if (cache && !restoredScroll.current && movies.length > 0) {
+      restoredScroll.current = true;
+      requestAnimationFrame(() => {
+        window.scrollTo(0, cache.scrollY || 0);
+      });
+    }
+  }, [movies]);
+
+  // Save cache whenever state changes
+  useEffect(() => {
+    if (!loading) {
+      saveCache({ movies, selectedGenre, sortBy, visibleCount, scrollY: window.scrollY });
+    }
+  }, [movies, selectedGenre, sortBy, visibleCount, loading]);
+
+  // Fetch favorites from Firestore (skip if restored from cache)
+  useEffect(() => {
+    if (cache || !user) return;
     getDocs(collection(db, 'users', user.uid, 'favorites'))
       .then(async (snapshot) => {
         const favIds = snapshot.docs.map((d) => d.id);
@@ -100,6 +170,43 @@ export default function Favorites() {
     return list;
   }, [movies, selectedGenre, sortBy]);
 
+  // Reset visible count when genre or sort changes
+  function handleGenreChange(genreId) {
+    setSelectedGenre(genreId);
+    setVisibleCount(PAGE_SIZE);
+    window.scrollTo(0, 0);
+  }
+
+  function handleSortChange(value) {
+    setSortBy(value);
+    setVisibleCount(PAGE_SIZE);
+  }
+
+  // Slice to visible count for progressive rendering
+  const visibleMovies = filteredAndSorted.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredAndSorted.length;
+
+  // IntersectionObserver to reveal more movies
+  const observerCallback = useCallback(
+    (entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting && hasMore) {
+        setVisibleCount((prev) => prev + PAGE_SIZE);
+      }
+    },
+    [hasMore]
+  );
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(observerCallback, {
+      rootMargin: '400px',
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [observerCallback]);
+
   // Count movies per genre for badge display
   const genreCounts = useMemo(() => {
     const counts = { all: movies.length };
@@ -142,11 +249,14 @@ export default function Favorites() {
 
   return (
     <div className="space-y-6">
+      {/* Spacer for fixed mobile genre dropdown */}
+      <div className="md:hidden h-10" />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Your Favorites</h1>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
-          <Select value={sortBy} onValueChange={setSortBy}>
+          <Select value={sortBy} onValueChange={handleSortChange}>
             <SelectTrigger className="w-[170px]">
               <SelectValue />
             </SelectTrigger>
@@ -163,14 +273,14 @@ export default function Favorites() {
 
       <div className="flex gap-6">
         {/* Genre sidebar */}
-        <aside className="hidden md:flex flex-col gap-1 min-w-[160px]">
+        <aside className="hidden md:flex flex-col gap-1 min-w-[160px] sticky top-[4.5rem] self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto">
           {GENRES.map((genre) => {
             const count = genre.id === null ? genreCounts.all : (genreCounts[genre.id] || 0);
             const isActive = selectedGenre === genre.id;
             return (
               <button
                 key={genre.name}
-                onClick={() => setSelectedGenre(genre.id)}
+                onClick={() => handleGenreChange(genre.id)}
                 className={`flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
                   isActive
                     ? 'bg-primary text-primary-foreground'
@@ -186,13 +296,17 @@ export default function Favorites() {
           })}
         </aside>
 
-        {/* Mobile genre selector */}
-        <div className="md:hidden w-full">
+        {/* Mobile genre selector — sticky, hides on scroll down, shows on scroll up */}
+        <div
+          className={`md:hidden fixed top-[6rem] left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-2 border-b border-border transition-transform duration-300 ${
+            showMobileGenre ? 'translate-y-0' : '-translate-y-full'
+          }`}
+        >
           <Select
             value={selectedGenre === null ? 'all' : String(selectedGenre)}
-            onValueChange={(v) => setSelectedGenre(v === 'all' ? null : Number(v))}
+            onValueChange={(v) => handleGenreChange(v === 'all' ? null : Number(v))}
           >
-            <SelectTrigger className="w-full mb-4">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Genre" />
             </SelectTrigger>
             <SelectContent>
@@ -215,11 +329,19 @@ export default function Favorites() {
               <p className="text-muted-foreground">No favorites in this genre.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {filteredAndSorted.map((movie) => (
-                <MovieCard key={movie.id} movie={movie} onRemove={handleRemove} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {visibleMovies.map((movie) => (
+                  <MovieCard key={movie.id} movie={movie} onRemove={handleRemove} />
+                ))}
+              </div>
+              {/* Sentinel for infinite scroll */}
+              {hasMore && (
+                <div ref={sentinelRef} className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
