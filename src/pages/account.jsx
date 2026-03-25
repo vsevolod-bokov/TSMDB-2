@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { User } from 'lucide-react';
+import { User, Loader2 } from 'lucide-react';
 
 const AVATAR_STYLES = [
   { id: "adventurer", label: "Adventurer" },
@@ -42,7 +42,10 @@ export default function Account() {
   const [profileMsg, setProfileMsg] = useState(null);
   const [emailMsg, setEmailMsg] = useState(null);
   const [passwordMsg, setPasswordMsg] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   // Avatar state
   const [editingAvatar, setEditingAvatar] = useState(false);
@@ -52,7 +55,7 @@ export default function Account() {
 
   async function handleUpdateProfile(e) {
     e.preventDefault();
-    setSaving(true);
+    setSavingProfile(true);
     setProfileMsg(null);
     try {
       await updateProfile(user, { displayName });
@@ -60,17 +63,17 @@ export default function Account() {
     } catch (err) {
       setProfileMsg({ type: 'error', text: err.message });
     }
-    setSaving(false);
+    setSavingProfile(false);
   }
 
   async function handleUpdateEmail(e) {
     e.preventDefault();
-    setSaving(true);
+    setSavingEmail(true);
     setEmailMsg(null);
     try {
       if (!emailPassword) {
         setEmailMsg({ type: 'error', text: 'Current password is required to change email.' });
-        setSaving(false);
+        setSavingEmail(false);
         return;
       }
       const credential = EmailAuthProvider.credential(user.email, emailPassword);
@@ -81,17 +84,17 @@ export default function Account() {
     } catch (err) {
       setEmailMsg({ type: 'error', text: err.message });
     }
-    setSaving(false);
+    setSavingEmail(false);
   }
 
   async function handleUpdatePassword(e) {
     e.preventDefault();
-    setSaving(true);
+    setSavingPassword(true);
     setPasswordMsg(null);
     try {
       if (!currentPassword) {
         setPasswordMsg({ type: 'error', text: 'Current password is required.' });
-        setSaving(false);
+        setSavingPassword(false);
         return;
       }
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
@@ -103,11 +106,11 @@ export default function Account() {
     } catch (err) {
       setPasswordMsg({ type: 'error', text: err.message });
     }
-    setSaving(false);
+    setSavingPassword(false);
   }
 
   async function handleSaveAvatar() {
-    setSaving(true);
+    setSavingAvatar(true);
     try {
       const photoURL = getAvatarUrl(avatarStyle, selectedSeed);
       await updateProfile(user, { photoURL });
@@ -116,7 +119,7 @@ export default function Account() {
     } catch (err) {
       setProfileMsg({ type: 'error', text: err.message });
     }
-    setSaving(false);
+    setSavingAvatar(false);
   }
 
   return (
@@ -214,7 +217,10 @@ export default function Account() {
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleSaveAvatar} disabled={saving}>Save Avatar</Button>
+                <Button onClick={handleSaveAvatar} disabled={savingAvatar}>
+                  {savingAvatar && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Avatar
+                </Button>
                 <Button variant="outline" onClick={() => setEditingAvatar(false)}>Cancel</Button>
               </div>
             </div>
@@ -240,7 +246,10 @@ export default function Account() {
                 {profileMsg.text}
               </p>
             )}
-            <Button type="submit" disabled={saving}>Save</Button>
+            <Button type="submit" disabled={savingProfile}>
+              {savingProfile && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save
+            </Button>
           </form>
         </CardContent>
       </Card>
@@ -276,7 +285,10 @@ export default function Account() {
                 {emailMsg.text}
               </p>
             )}
-            <Button type="submit" disabled={saving}>Update Email</Button>
+            <Button type="submit" disabled={savingEmail}>
+              {savingEmail && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Update Email
+            </Button>
           </form>
         </CardContent>
       </Card>
@@ -313,7 +325,10 @@ export default function Account() {
                 {passwordMsg.text}
               </p>
             )}
-            <Button type="submit" disabled={saving}>Update Password</Button>
+            <Button type="submit" disabled={savingPassword}>
+              {savingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Update Password
+            </Button>
           </form>
         </CardContent>
       </Card>

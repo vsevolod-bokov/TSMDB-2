@@ -9,6 +9,7 @@ const FavoritesContext = createContext(null);
 export function FavoritesProvider({ children }) {
   const { user } = useAuth();
   const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const [togglingIds, setTogglingIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,12 +34,19 @@ export function FavoritesProvider({ children }) {
     [favoriteIds]
   );
 
+  const isToggling = useCallback(
+    (movieId) => togglingIds.has(String(movieId)),
+    [togglingIds]
+  );
+
   const toggleFavorite = useCallback(
     async (movieId) => {
       if (!user) return;
       const id = String(movieId);
+      if (togglingIds.has(id)) return;
       const favRef = doc(db, 'users', user.uid, 'favorites', id);
       const wasAdded = favoriteIds.has(id);
+      setTogglingIds((prev) => new Set(prev).add(id));
       try {
         if (wasAdded) {
           setFavoriteIds((prev) => {
@@ -64,13 +72,19 @@ export function FavoritesProvider({ children }) {
           });
         }
         toast.error(wasAdded ? 'Failed to remove from favorites.' : 'Failed to add to favorites.');
+      } finally {
+        setTogglingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
       }
     },
-    [user, favoriteIds]
+    [user, favoriteIds, togglingIds]
   );
 
   return (
-    <FavoritesContext.Provider value={{ favoriteIds, isFavorited, toggleFavorite, loading }}>
+    <FavoritesContext.Provider value={{ favoriteIds, isFavorited, isToggling, toggleFavorite, loading }}>
       {children}
     </FavoritesContext.Provider>
   );

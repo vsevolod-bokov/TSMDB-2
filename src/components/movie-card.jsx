@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Heart, Star } from 'lucide-react';
+import { Trash2, Heart, Star, Loader2 } from 'lucide-react';
 
 export const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 
-export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorited }) {
+export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorited, isToggling }) {
   return (
     <Link to={`/film/${movie.id}`} className="relative group">
       <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all py-0 gap-0">
@@ -55,6 +55,7 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
         <Button
           variant="secondary"
           size="icon-xs"
+          disabled={isToggling}
           className={`absolute top-2 right-2 transition-opacity ${isFavorited ? 'opacity-100' : 'opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100'}`}
           onClick={(e) => {
             e.preventDefault();
@@ -62,7 +63,11 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
             onFavoriteToggle(movie.id);
           }}
         >
-          <Heart className={`h-3 w-3 ${isFavorited ? 'fill-current text-red-500' : ''}`} />
+          {isToggling ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Heart className={`h-3 w-3 ${isFavorited ? 'fill-current text-red-500' : ''}`} />
+          )}
         </Button>
       )}
     </Link>
