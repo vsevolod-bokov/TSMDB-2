@@ -196,9 +196,11 @@ export default function Favorites() {
 
   async function handleRemove(movieId) {
     const prevMovies = movies;
+    const removed = movies.find((m) => m.id === movieId);
     setMovies((prev) => prev.filter((m) => m.id !== movieId));
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'favorites', String(movieId)));
+      toast.success(removed ? `Removed "${removed.title}" from favorites.` : 'Removed from favorites.');
     } catch (err) {
       console.error('[Favorites] Failed to remove favorite:', err);
       setMovies(prevMovies);

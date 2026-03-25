@@ -173,7 +173,7 @@ export default function Account() {
       setEditingAvatar(false);
       setProfileMsg({ type: 'success', text: 'Avatar updated.' });
     } catch (err) {
-      setProfileMsg({ type: 'error', text: err.message });
+      setProfileMsg({ type: 'error', text: friendlyError(err) });
     }
     setSavingAvatar(false);
   }
