@@ -42,6 +42,16 @@ function ScrollToTop() {
   return null;
 }
 
+// Wraps a page element with an error boundary that auto-resets on route change
+function PageBoundary({ children }) {
+  const { pathname } = useLocation();
+  return (
+    <ErrorBoundary resetKey={pathname}>
+      {children}
+    </ErrorBoundary>
+  );
+}
+
 function App() {
   return (
     <FirebaseUIProvider ui={ui}>
@@ -50,14 +60,14 @@ function App() {
     <ScrollToTop />
     <ErrorBoundary>
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<PageBoundary><Login /></PageBoundary>} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/browse" element={<Browse />} />
-        <Route path="/film/:id" element={<Film />} />
-        <Route path="/account" element={<Account />} />
-        <Route path="/favorites" element={<Favorites />} />
-        <Route path="/results" element={<Results />} />
+        <Route path="/" element={<PageBoundary><Home /></PageBoundary>} />
+        <Route path="/browse" element={<PageBoundary><Browse /></PageBoundary>} />
+        <Route path="/film/:id" element={<PageBoundary><Film /></PageBoundary>} />
+        <Route path="/account" element={<PageBoundary><Account /></PageBoundary>} />
+        <Route path="/favorites" element={<PageBoundary><Favorites /></PageBoundary>} />
+        <Route path="/results" element={<PageBoundary><Results /></PageBoundary>} />
       </Route>
       <Route path="*" element={<Lost />} />
     </Routes>
