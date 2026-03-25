@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -22,6 +23,7 @@ export function FavoritesProvider({ children }) {
       })
       .catch((err) => {
         console.error('[Favorites] Failed to load favorite IDs:', err);
+        toast.error('Failed to load your favorites.');
       })
       .finally(() => setLoading(false));
   }, [user]);
@@ -36,20 +38,32 @@ export function FavoritesProvider({ children }) {
       if (!user) return;
       const id = String(movieId);
       const favRef = doc(db, 'users', user.uid, 'favorites', id);
+      const wasAdded = favoriteIds.has(id);
       try {
-        if (favoriteIds.has(id)) {
-          await deleteDoc(favRef);
+        if (wasAdded) {
           setFavoriteIds((prev) => {
             const next = new Set(prev);
             next.delete(id);
             return next;
           });
+          await deleteDoc(favRef);
         } else {
-          await setDoc(favRef, { addedAt: new Date() });
           setFavoriteIds((prev) => new Set(prev).add(id));
+          await setDoc(favRef, { addedAt: new Date() });
         }
       } catch (err) {
         console.error('[Favorites] Failed to toggle favorite:', err);
+        // Revert optimistic update
+        if (wasAdded) {
+          setFavoriteIds((prev) => new Set(prev).add(id));
+        } else {
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        }
+        toast.error(wasAdded ? 'Failed to remove from favorites.' : 'Failed to add to favorites.');
       }
     },
     [user, favoriteIds]

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link, useNavigationType } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/firebase';
 import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
@@ -89,6 +90,7 @@ export default function Favorites() {
   const [visibleCount, setVisibleCount] = useState(cache?.visibleCount || PAGE_SIZE);
   const [showMobileGenre, setShowMobileGenre] = useState(true);
   const [error, setError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
   const lastScrollY = useRef(0);
   const sentinelRef = useRef(null);
   const restoredScroll = useRef(false);
@@ -159,7 +161,9 @@ export default function Favorites() {
 
   // Fetch favorites from Firestore (skip if restored from cache)
   useEffect(() => {
-    if (cache || !user) return;
+    if ((cache && retryKey === 0) || !user) return;
+    setError(null);
+    setLoading(true);
     getDocs(collection(db, 'users', user.uid, 'favorites'))
       .then(async (snapshot) => {
         const favIds = snapshot.docs.map((d) => d.id);
@@ -167,24 +171,38 @@ export default function Favorites() {
           setMovies([]);
           return;
         }
-        const results = await Promise.all(
+        const results = await Promise.allSettled(
           favIds.map((id) => tmdbFetch(`/movie/${id}?language=en-US`))
         );
-        setMovies(results.filter((m) => m.id && m.poster_path));
+        const movies = results
+          .filter((r) => r.status === 'fulfilled' && r.value.id && r.value.poster_path)
+          .map((r) => r.value);
+        const failedCount = results.filter((r) => r.status === 'rejected').length;
+        if (movies.length === 0 && failedCount > 0) {
+          setError('Failed to load your favorites.');
+        } else {
+          setMovies(movies);
+          if (failedCount > 0) {
+            toast.error(`Failed to load ${failedCount} favorite${failedCount > 1 ? 's' : ''}.`);
+          }
+        }
       })
       .catch((err) => {
         console.error('[Favorites] Failed to load favorites:', err);
         setError(err.message);
       })
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, retryKey]);
 
   async function handleRemove(movieId) {
+    const prevMovies = movies;
+    setMovies((prev) => prev.filter((m) => m.id !== movieId));
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'favorites', String(movieId)));
-      setMovies((prev) => prev.filter((m) => m.id !== movieId));
     } catch (err) {
       console.error('[Favorites] Failed to remove favorite:', err);
+      setMovies(prevMovies);
+      toast.error('Failed to remove from favorites.');
     }
   }
 
@@ -281,7 +299,7 @@ export default function Favorites() {
         <h1 className="text-2xl font-bold">Your Favorites</h1>
         <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
           <p className="text-muted-foreground">Failed to load your favorites.</p>
-          <Button variant="outline" onClick={() => window.location.reload()}>
+          <Button variant="outline" onClick={() => setRetryKey((k) => k + 1)}>
             Try Again
           </Button>
         </div>

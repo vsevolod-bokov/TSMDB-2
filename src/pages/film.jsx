@@ -72,6 +72,7 @@ export default function Film() {
   const [cast, setCast] = useState([]);
   const [similar, setSimilar] = useState([]);
   const [error, setError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (movie?.title) document.title = `${movie.title} - TSMDB`;
@@ -81,24 +82,31 @@ export default function Film() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      tmdbFetch(`/movie/${id}?language=en-US`),
-      tmdbFetch(`/movie/${id}/watch/providers`),
-      tmdbFetch(`/movie/${id}/credits?language=en-US`),
-      tmdbFetch(`/movie/${id}/similar?language=en-US&page=1`),
-    ])
-      .then(([movieData, providersData, creditsData, similarData]) => {
+    // Fetch movie details first (required), then secondary data with allSettled (partial failure OK)
+    tmdbFetch(`/movie/${id}?language=en-US`)
+      .then(async (movieData) => {
         setMovie(movieData);
-        setWatchProviders(providersData.results?.US || null);
-        setCast(creditsData.cast?.slice(0, 12) || []);
-        setSimilar((similarData.results || []).filter((m) => m.poster_path && m.original_language === 'en').slice(0, 12));
+        const [providersResult, creditsResult, similarResult] = await Promise.allSettled([
+          tmdbFetch(`/movie/${id}/watch/providers`),
+          tmdbFetch(`/movie/${id}/credits?language=en-US`),
+          tmdbFetch(`/movie/${id}/similar?language=en-US&page=1`),
+        ]);
+        if (providersResult.status === 'fulfilled') {
+          setWatchProviders(providersResult.value.results?.US || null);
+        }
+        if (creditsResult.status === 'fulfilled') {
+          setCast(creditsResult.value.cast?.slice(0, 12) || []);
+        }
+        if (similarResult.status === 'fulfilled') {
+          setSimilar((similarResult.value.results || []).filter((m) => m.poster_path && m.original_language === 'en').slice(0, 12));
+        }
       })
       .catch((err) => {
         console.error('[Film] Failed to load movie details:', err);
         setError(err.message);
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, retryKey]);
 
   const favorited = isFavorited(id);
 
@@ -129,7 +137,7 @@ export default function Film() {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground mb-4">Failed to load movie details.</p>
-        <Button variant="outline" onClick={() => window.location.reload()}>
+        <Button variant="outline" onClick={() => setRetryKey((k) => k + 1)}>
           Try Again
         </Button>
       </div>
