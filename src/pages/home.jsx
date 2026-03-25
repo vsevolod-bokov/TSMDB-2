@@ -246,7 +246,7 @@ export default function Home() {
         </div>
       </div>
 
-      <MovieRow title="New in Theaters" movies={nowPlaying} loading={loadingNow} error={errorNow} onRetry={retryNowPlaying} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
+      <MovieRow title="New Releases" movies={nowPlaying} loading={loadingNow} error={errorNow} onRetry={retryNowPlaying} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
       <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} error={errorRecs} onRetry={loadRecommendations} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
     </div>
   );
