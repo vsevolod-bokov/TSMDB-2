@@ -9,6 +9,25 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { User, Loader2 } from 'lucide-react';
 
+function friendlyError(err) {
+  const code = err?.code;
+  switch (code) {
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Incorrect password. Please try again.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please wait a moment and try again.';
+    case 'auth/email-already-in-use':
+      return 'This email is already in use by another account.';
+    case 'auth/requires-recent-login':
+      return 'For security, please sign out and sign back in before making this change.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection and try again.';
+    default:
+      return err?.message || 'Something went wrong. Please try again.';
+  }
+}
+
 const AVATAR_STYLES = [
   { id: "adventurer", label: "Adventurer" },
   { id: "avataaars", label: "Avataaars" },
@@ -55,48 +74,85 @@ export default function Account() {
 
   async function handleUpdateProfile(e) {
     e.preventDefault();
-    setSavingProfile(true);
     setProfileMsg(null);
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      setProfileMsg({ type: 'error', text: 'Display name cannot be empty.' });
+      return;
+    }
+    if (trimmed.length > 50) {
+      setProfileMsg({ type: 'error', text: 'Display name must be 50 characters or less.' });
+      return;
+    }
+    if (trimmed === user.displayName) {
+      setProfileMsg({ type: 'error', text: 'Display name is the same as your current one.' });
+      return;
+    }
+    setSavingProfile(true);
     try {
-      await updateProfile(user, { displayName });
+      await updateProfile(user, { displayName: trimmed });
+      setDisplayName(trimmed);
       setProfileMsg({ type: 'success', text: 'Display name updated.' });
     } catch (err) {
-      setProfileMsg({ type: 'error', text: err.message });
+      setProfileMsg({ type: 'error', text: friendlyError(err) });
     }
     setSavingProfile(false);
   }
 
   async function handleUpdateEmail(e) {
     e.preventDefault();
-    setSavingEmail(true);
     setEmailMsg(null);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setEmailMsg({ type: 'error', text: 'Email address cannot be empty.' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setEmailMsg({ type: 'error', text: 'Please enter a valid email address.' });
+      return;
+    }
+    if (trimmedEmail === user.email) {
+      setEmailMsg({ type: 'error', text: 'This is already your current email address.' });
+      return;
+    }
+    if (!emailPassword) {
+      setEmailMsg({ type: 'error', text: 'Current password is required to change email.' });
+      return;
+    }
+    setSavingEmail(true);
     try {
-      if (!emailPassword) {
-        setEmailMsg({ type: 'error', text: 'Current password is required to change email.' });
-        setSavingEmail(false);
-        return;
-      }
       const credential = EmailAuthProvider.credential(user.email, emailPassword);
       await reauthenticateWithCredential(user, credential);
-      await verifyBeforeUpdateEmail(user, email);
+      await verifyBeforeUpdateEmail(user, trimmedEmail);
       setEmailPassword('');
       setEmailMsg({ type: 'success', text: 'A verification email has been sent to your new address. Please check your inbox and click the link to confirm the change.' });
     } catch (err) {
-      setEmailMsg({ type: 'error', text: err.message });
+      setEmailMsg({ type: 'error', text: friendlyError(err) });
     }
     setSavingEmail(false);
   }
 
   async function handleUpdatePassword(e) {
     e.preventDefault();
-    setSavingPassword(true);
     setPasswordMsg(null);
+    if (!currentPassword) {
+      setPasswordMsg({ type: 'error', text: 'Current password is required.' });
+      return;
+    }
+    if (!newPassword) {
+      setPasswordMsg({ type: 'error', text: 'New password cannot be empty.' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: 'New password must be at least 6 characters.' });
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setPasswordMsg({ type: 'error', text: 'New password must be different from current password.' });
+      return;
+    }
+    setSavingPassword(true);
     try {
-      if (!currentPassword) {
-        setPasswordMsg({ type: 'error', text: 'Current password is required.' });
-        setSavingPassword(false);
-        return;
-      }
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
@@ -104,7 +160,7 @@ export default function Account() {
       setNewPassword('');
       setPasswordMsg({ type: 'success', text: 'Password updated.' });
     } catch (err) {
-      setPasswordMsg({ type: 'error', text: err.message });
+      setPasswordMsg({ type: 'error', text: friendlyError(err) });
     }
     setSavingPassword(false);
   }
