@@ -58,6 +58,7 @@ export function FavoritesProvider({ children }) {
         } else {
           setFavoriteIds((prev) => new Set(prev).add(id));
           await setDoc(favRef, { addedAt: new Date() });
+          toast.success('Added to favorites.');
         }
       } catch (err) {
         console.error('[Favorites] Failed to toggle favorite:', err);
