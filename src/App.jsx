@@ -14,6 +14,7 @@ import { ui } from './firebase.js';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import { FavoritesProvider } from './hooks/useFavorites.jsx';
 import ProtectedRoute from './components/protected-route.jsx';
+import { Toaster } from './components/ui/sonner.jsx';
 
 // Scroll to top on route change, except browse/favorites/results which handle their own restoration
 function ScrollToTop() {
@@ -61,6 +62,7 @@ function App() {
       <Route path="*" element={<Lost />} />
     </Routes>
     </ErrorBoundary>
+    <Toaster position="bottom-right" />
     </FavoritesProvider>
     </AuthProvider>
     </FirebaseUIProvider>

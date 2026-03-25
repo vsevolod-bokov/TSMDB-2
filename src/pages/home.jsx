@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useFavorites';
 import { tmdbFetch } from '@/tmdb';
@@ -12,7 +13,7 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/original';
 
-function MovieRow({ title, movies, loading, onFavoriteToggle, isFavorited }) {
+function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, isFavorited }) {
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -54,6 +55,22 @@ function MovieRow({ title, movies, loading, onFavoriteToggle, isFavorited }) {
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className={`${cardClass} aspect-[2/3] bg-muted rounded-lg animate-pulse`} />
           ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section>
+        <h2 className="text-xl font-semibold mb-4">{title}</h2>
+        <div className="flex flex-col items-center py-8 text-center space-y-3">
+          <p className="text-muted-foreground text-sm">Failed to load this section.</p>
+          {onRetry && (
+            <Button variant="outline" size="sm" onClick={onRetry}>
+              Try Again
+            </Button>
+          )}
         </div>
       </section>
     );
@@ -109,19 +126,30 @@ export default function Home() {
   const [recommendations, setRecommendations] = useState([]);
   const [loadingNow, setLoadingNow] = useState(true);
   const [loadingRecs, setLoadingRecs] = useState(true);
+  const [errorNow, setErrorNow] = useState(null);
+  const [errorRecs, setErrorRecs] = useState(null);
   const [query, setQuery] = useState('');
 
   useEffect(() => { document.title = 'Home - TSMDB'; }, []);
 
-  useEffect(() => {
+  function retryNowPlaying() {
+    setErrorNow(null);
+    setLoadingNow(true);
     tmdbFetch('/movie/now_playing?language=en-US&page=1&region=US')
       .then((data) => setNowPlaying((data.results || []).filter((m) => m.poster_path && m.original_language === 'en').slice(0, 12)))
-      .catch((err) => console.error('[Home] Failed to load now playing:', err))
+      .catch((err) => {
+        console.error('[Home] Failed to load now playing:', err);
+        setErrorNow(err.message);
+      })
       .finally(() => setLoadingNow(false));
-  }, []);
+  }
 
-  useEffect(() => {
+  useEffect(() => { retryNowPlaying(); }, []);
+
+  function loadRecommendations() {
     if (!user) return;
+    setErrorRecs(null);
+    setLoadingRecs(true);
     getDocs(collection(db, 'users', user.uid, 'favorites'))
       .then(async (snapshot) => {
         const favIds = new Set(snapshot.docs.map((doc) => doc.id));
@@ -132,25 +160,39 @@ export default function Home() {
         // Pick up to 5 random favorites to fetch recommendations from
         const ids = [...favIds];
         const shuffled = ids.sort(() => Math.random() - 0.5).slice(0, 5);
-        const results = await Promise.all(
+        const results = await Promise.allSettled(
           shuffled.map((id) => tmdbFetch(`/movie/${id}/recommendations?language=en-US&page=1`))
         );
         // Merge, deduplicate, and exclude movies already in favorites
         const seen = new Set();
         const merged = [];
-        for (const data of results) {
-          for (const movie of data.results || []) {
+        let anyFailed = false;
+        for (const result of results) {
+          if (result.status === 'rejected') {
+            anyFailed = true;
+            continue;
+          }
+          for (const movie of result.value.results || []) {
             if (!seen.has(movie.id) && !favIds.has(String(movie.id)) && movie.poster_path && movie.original_language === 'en') {
               seen.add(movie.id);
               merged.push(movie);
             }
           }
         }
-        setRecommendations(merged.slice(0, 12));
+        if (merged.length === 0 && anyFailed) {
+          setErrorRecs('Failed to load recommendations.');
+        } else {
+          setRecommendations(merged.slice(0, 12));
+        }
       })
-      .catch((err) => console.error('[Home] Failed to load recommendations:', err))
+      .catch((err) => {
+        console.error('[Home] Failed to load recommendations:', err);
+        setErrorRecs(err.message);
+      })
       .finally(() => setLoadingRecs(false));
-  }, [user]);
+  }
+
+  useEffect(() => { loadRecommendations(); }, [user]);
 
   const randomBackdrop = useMemo(() => {
     const withBackdrop = nowPlaying.filter((m) => m.backdrop_path);
@@ -204,8 +246,8 @@ export default function Home() {
         </div>
       </div>
 
-      <MovieRow title="New in Theaters" movies={nowPlaying} loading={loadingNow} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
-      <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
+      <MovieRow title="New in Theaters" movies={nowPlaying} loading={loadingNow} error={errorNow} onRetry={retryNowPlaying} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
+      <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} error={errorRecs} onRetry={loadRecommendations} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
     </div>
   );
 }
