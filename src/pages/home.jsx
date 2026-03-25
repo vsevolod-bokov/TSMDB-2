@@ -13,7 +13,7 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/original';
 
-function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, isFavorited }) {
+function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, isFavorited, isToggling }) {
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -99,7 +99,7 @@ function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, is
         >
           {movies.map((movie) => (
             <div key={movie.id} className={cardClass}>
-              <MovieCard movie={movie} onFavoriteToggle={onFavoriteToggle} isFavorited={isFavorited?.(movie.id)} />
+              <MovieCard movie={movie} onFavoriteToggle={onFavoriteToggle} isFavorited={isFavorited?.(movie.id)} isToggling={isToggling?.(movie.id)} />
             </div>
           ))}
         </div>
@@ -120,7 +120,7 @@ function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, is
 
 export default function Home() {
   const { user } = useAuth();
-  const { toggleFavorite, isFavorited } = useFavorites();
+  const { toggleFavorite, isFavorited, isToggling } = useFavorites();
   const navigate = useNavigate();
   const [nowPlaying, setNowPlaying] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -246,8 +246,8 @@ export default function Home() {
         </div>
       </div>
 
-      <MovieRow title="New Releases" movies={nowPlaying} loading={loadingNow} error={errorNow} onRetry={retryNowPlaying} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
-      <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} error={errorRecs} onRetry={loadRecommendations} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} />
+      <MovieRow title="New Releases" movies={nowPlaying} loading={loadingNow} error={errorNow} onRetry={retryNowPlaying} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} isToggling={isToggling} />
+      <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} error={errorRecs} onRetry={loadRecommendations} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} isToggling={isToggling} />
     </div>
   );
 }

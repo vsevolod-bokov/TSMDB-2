@@ -5,7 +5,7 @@ import { tmdbFetch } from '@/tmdb';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import MovieCard from '@/components/movie-card';
-import { Heart, ArrowLeft, Star, Clock, Calendar, User } from 'lucide-react';
+import { Heart, ArrowLeft, Star, Clock, Calendar, User, Loader2 } from 'lucide-react';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/original';
@@ -65,7 +65,7 @@ function dedupeProviders(providers) {
 
 export default function Film() {
   const { id } = useParams();
-  const { toggleFavorite, isFavorited } = useFavorites();
+  const { toggleFavorite, isFavorited, isToggling } = useFavorites();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [watchProviders, setWatchProviders] = useState(null);
@@ -109,6 +109,7 @@ export default function Film() {
   }, [id, retryKey]);
 
   const favorited = isFavorited(id);
+  const toggling = isToggling(id);
 
   function formatRuntime(minutes) {
     if (!minutes) return null;
@@ -217,11 +218,16 @@ export default function Film() {
 
           <Button
             variant={favorited ? 'default' : 'outline'}
+            disabled={toggling}
             onClick={() => toggleFavorite(id)}
           >
-            <Heart
-              className={`h-4 w-4 mr-2 ${favorited ? 'fill-current text-red-500' : ''}`}
-            />
+            {toggling ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Heart
+                className={`h-4 w-4 mr-2 ${favorited ? 'fill-current text-red-500' : ''}`}
+              />
+            )}
             {favorited ? 'Favorited' : 'Add to Favorites'}
           </Button>
 
@@ -377,7 +383,7 @@ export default function Film() {
             <h2 className="text-xl font-semibold mb-4">Similar Movies</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {similar.map((m) => (
-                <MovieCard key={m.id} movie={m} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(m.id)} />
+                <MovieCard key={m.id} movie={m} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(m.id)} isToggling={isToggling(m.id)} />
               ))}
             </div>
           </div>

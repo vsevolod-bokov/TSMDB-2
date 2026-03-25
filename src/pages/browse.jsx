@@ -68,7 +68,7 @@ function clearCache() {
 const RELOAD_KEY = 'browse_reloading';
 
 export default function Browse() {
-  const { toggleFavorite, isFavorited } = useFavorites();
+  const { toggleFavorite, isFavorited, isToggling } = useFavorites();
   const navType = useNavigationType();
   const [searchParams] = useSearchParams();
   const genreParam = searchParams.get('genre');
@@ -328,7 +328,7 @@ export default function Browse() {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {movies.map((movie) => (
-                  <MovieCard key={movie.id} movie={movie} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(movie.id)} />
+                  <MovieCard key={movie.id} movie={movie} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(movie.id)} isToggling={isToggling(movie.id)} />
                 ))}
               </div>
               {/* Sentinel for infinite scroll */}

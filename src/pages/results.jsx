@@ -46,7 +46,7 @@ function clearCache() {
 }
 
 export default function Results() {
-  const { toggleFavorite, isFavorited } = useFavorites();
+  const { toggleFavorite, isFavorited, isToggling } = useFavorites();
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const navType = useNavigationType();
@@ -293,7 +293,7 @@ export default function Results() {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {sortedMovies.map((movie) => (
-          <MovieCard key={movie.id} movie={movie} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(movie.id)} />
+          <MovieCard key={movie.id} movie={movie} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(movie.id)} isToggling={isToggling(movie.id)} />
         ))}
       </div>
       {/* Sentinel for infinite scroll */}
