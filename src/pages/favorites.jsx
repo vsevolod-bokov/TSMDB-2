@@ -91,7 +91,7 @@ export default function Favorites() {
   const [showMobileGenre, setShowMobileGenre] = useState(true);
   const [error, setError] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
-  const lastScrollY = useRef(0);
+  const lastScrollY = useRef(cache?.scrollY || 0);
   const sentinelRef = useRef(null);
   const restoredScroll = useRef(false);
 
@@ -334,7 +334,7 @@ export default function Favorites() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
           <Select value={sortBy} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-[170px]">
+            <SelectTrigger className="w-[170px]" aria-label="Sort by">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -350,7 +350,7 @@ export default function Favorites() {
 
       <div className="flex gap-6">
         {/* Genre sidebar */}
-        <aside className="hidden md:flex flex-col gap-1 min-w-[160px] sticky top-[4.5rem] self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto">
+        <aside aria-label="Genre filter" className="hidden md:flex flex-col gap-1 min-w-[160px] sticky top-[4.5rem] self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto">
           {GENRES.map((genre) => {
             const count = genre.id === null ? genreCounts.all : (genreCounts[genre.id] || 0);
             const isActive = selectedGenre === genre.id;
@@ -358,6 +358,7 @@ export default function Favorites() {
               <button
                 key={genre.name}
                 onClick={() => handleGenreChange(genre.id)}
+                aria-pressed={isActive}
                 className={`flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
                   isActive
                     ? 'bg-primary text-primary-foreground'
@@ -374,7 +375,8 @@ export default function Favorites() {
         </aside>
 
         {/* Mobile genre selector — sticky, hides on scroll down, shows on scroll up */}
-        <div
+        <aside
+          aria-label="Genre filter"
           className={`md:hidden fixed top-[6rem] left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-2 border-b border-border transition-transform duration-300 ${
             showMobileGenre ? 'translate-y-0' : '-translate-y-full'
           }`}
@@ -383,7 +385,7 @@ export default function Favorites() {
             value={selectedGenre === null ? 'all' : String(selectedGenre)}
             onValueChange={(v) => handleGenreChange(v === 'all' ? null : Number(v))}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-label="Filter by genre">
               <SelectValue placeholder="Genre" />
             </SelectTrigger>
             <SelectContent>
@@ -397,10 +399,10 @@ export default function Favorites() {
               })}
             </SelectContent>
           </Select>
-        </div>
+        </aside>
 
         {/* Movie grid */}
-        <div className="flex-1">
+        <section className="flex-1">
           {filteredAndSorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <p className="text-muted-foreground">No favorites in this genre.</p>
@@ -420,7 +422,7 @@ export default function Favorites() {
               )}
             </>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

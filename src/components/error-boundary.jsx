@@ -33,7 +33,7 @@ export default class ErrorBoundary extends Component {
       }
 
       return (
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <div role="alert" className="flex flex-col items-center justify-center py-20 text-center space-y-4">
           <h2 className="text-xl font-semibold">Something went wrong</h2>
           <p className="text-muted-foreground text-sm max-w-md">
             An unexpected error occurred. Try refreshing the page.
@@ -78,7 +78,7 @@ export class SectionErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center py-8 text-center space-y-3">
+        <div role="alert" className="flex flex-col items-center py-8 text-center space-y-3">
           <p className="text-muted-foreground text-sm">
             {this.props.message || 'Failed to load this section.'}
           </p>

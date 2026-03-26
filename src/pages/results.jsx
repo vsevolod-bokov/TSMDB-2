@@ -78,7 +78,7 @@ export default function Results() {
   const sentinelRef = useRef(null);
   const restoredScroll = useRef(false);
   const skipFetch = useRef(!!cache);
-  const lastScrollY = useRef(0);
+  const lastScrollY = useRef(cache?.scrollY || 0);
 
   useEffect(() => {
     document.title = query ? `"${query}" - TSMDB` : 'Search - TSMDB';
@@ -273,12 +273,12 @@ export default function Results() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Results for &ldquo;{query}&rdquo;</h1>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[170px]">
+            <SelectTrigger className="w-[170px]" aria-label="Sort by">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -290,12 +290,12 @@ export default function Results() {
             </SelectContent>
           </Select>
         </div>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      </header>
+      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {sortedMovies.map((movie) => (
           <MovieCard key={movie.id} movie={movie} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(movie.id)} isToggling={isToggling(movie.id)} />
         ))}
-      </div>
+      </section>
       {/* Sentinel for infinite scroll */}
       {page < totalPages && (
         <div ref={sentinelRef} className="flex justify-center py-8">

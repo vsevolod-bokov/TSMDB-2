@@ -92,7 +92,7 @@ export default function Browse() {
   const skipFetch = useRef(!!cache);
   const [showMobileGenre, setShowMobileGenre] = useState(true);
   const [error, setError] = useState(null);
-  const lastScrollY = useRef(0);
+  const lastScrollY = useRef(cache?.scrollY || 0);
 
   useEffect(() => {
     const genre = GENRES.find((g) => g.id === selectedGenre);
@@ -247,7 +247,7 @@ export default function Browse() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
           <Select value={sortBy} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[200px]" aria-label="Sort by">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -263,13 +263,14 @@ export default function Browse() {
 
       <div className="flex gap-6">
         {/* Genre sidebar */}
-        <aside className="hidden md:flex flex-col gap-1 min-w-[160px] sticky top-[4.5rem] self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto">
+        <aside aria-label="Genre filter" className="hidden md:flex flex-col gap-1 min-w-[160px] sticky top-[4.5rem] self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto">
           {GENRES.map((genre) => {
             const isActive = selectedGenre === genre.id;
             return (
               <button
                 key={genre.name}
                 onClick={() => handleGenreChange(genre.id)}
+                aria-pressed={isActive}
                 className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
                   isActive
                     ? 'bg-primary text-primary-foreground'
@@ -283,7 +284,8 @@ export default function Browse() {
         </aside>
 
         {/* Mobile genre selector — sticky, hides on scroll down, shows on scroll up */}
-        <div
+        <aside
+          aria-label="Genre filter"
           className={`md:hidden fixed top-[6rem] left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-2 border-b border-border transition-transform duration-300 ${
             showMobileGenre ? 'translate-y-0' : '-translate-y-full'
           }`}
@@ -292,7 +294,7 @@ export default function Browse() {
             value={selectedGenre === null ? 'all' : String(selectedGenre)}
             onValueChange={(v) => handleGenreChange(v === 'all' ? null : Number(v))}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-label="Filter by genre">
               <SelectValue placeholder="Genre" />
             </SelectTrigger>
             <SelectContent>
@@ -303,10 +305,10 @@ export default function Browse() {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </aside>
 
         {/* Movie grid */}
-        <div className="flex-1">
+        <section className="flex-1">
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {Array.from({ length: 20 }).map((_, i) => (
@@ -339,7 +341,7 @@ export default function Browse() {
               )}
             </>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

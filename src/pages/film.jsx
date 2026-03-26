@@ -160,7 +160,7 @@ export default function Film() {
   }
 
   return (
-    <div className="space-y-6">
+    <article className="space-y-6">
       {movie.backdrop_path && (
         <div className="relative -mx-4 -mt-6 overflow-hidden">
           <img
@@ -198,20 +198,20 @@ export default function Film() {
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             {movie.release_date && (
               <span className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                {movie.release_date.split('-')[0]}
+                <Calendar className="h-4 w-4" aria-hidden="true" />
+                <span>{movie.release_date.split('-')[0]}</span>
               </span>
             )}
             {movie.runtime > 0 && (
               <span className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {formatRuntime(movie.runtime)}
+                <Clock className="h-4 w-4" aria-hidden="true" />
+                <span>{formatRuntime(movie.runtime)}</span>
               </span>
             )}
             {movie.vote_average > 0 && (
-              <span className="flex items-center gap-1">
-                <Star className="h-4 w-4 text-yellow-500" />
-                {movie.vote_average.toFixed(1)}
+              <span className="flex items-center gap-1" aria-label={`Rating: ${movie.vote_average.toFixed(1)} out of 10`}>
+                <Star className="h-4 w-4 text-yellow-500" aria-hidden="true" />
+                <span>{movie.vote_average.toFixed(1)}</span>
               </span>
             )}
           </div>
@@ -219,13 +219,15 @@ export default function Film() {
           <Button
             variant={favorited ? 'default' : 'outline'}
             disabled={toggling}
+            aria-pressed={favorited}
             onClick={() => toggleFavorite(id)}
           >
             {toggling ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
             ) : (
               <Heart
                 className={`h-4 w-4 mr-2 ${favorited ? 'fill-current text-red-500' : ''}`}
+                aria-hidden="true"
               />
             )}
             {favorited ? 'Favorited' : 'Add to Favorites'}
@@ -349,10 +351,9 @@ export default function Film() {
       </div>
 
       {cast.length > 0 && (
-        <>
-          <Separator />
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Cast</h2>
+        <section>
+          <Separator className="mb-6" />
+          <h2 className="text-xl font-semibold mb-4">Cast</h2>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
               {cast.map((person) => (
                 <div key={person.credit_id} className="shrink-0 w-28 text-center">
@@ -372,23 +373,20 @@ export default function Film() {
                 </div>
               ))}
             </div>
-          </div>
-        </>
+        </section>
       )}
 
       {similar.length > 0 && (
-        <>
-          <Separator />
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Similar Movies</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {similar.map((m) => (
-                <MovieCard key={m.id} movie={m} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(m.id)} isToggling={isToggling(m.id)} />
-              ))}
-            </div>
+        <section>
+          <Separator className="mb-6" />
+          <h2 className="text-xl font-semibold mb-4">Similar Movies</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {similar.map((m) => (
+              <MovieCard key={m.id} movie={m} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited(m.id)} isToggling={isToggling(m.id)} />
+            ))}
           </div>
-        </>
+        </section>
       )}
-    </div>
+    </article>
   );
 }
