@@ -64,7 +64,7 @@ function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, is
     return (
       <section>
         <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        <div className="flex flex-col items-center py-8 text-center space-y-3">
+        <div role="alert" className="flex flex-col items-center py-8 text-center space-y-3">
           <p className="text-muted-foreground text-sm">Failed to load this section.</p>
           {onRetry && (
             <Button variant="outline" size="sm" onClick={onRetry}>
@@ -86,10 +86,11 @@ function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, is
           <Button
             variant="secondary"
             size="icon"
+            aria-label="Scroll left"
             className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover/row:opacity-100 transition-opacity shadow-lg h-10 w-10 rounded-full"
             onClick={() => scroll('left')}
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
           </Button>
         )}
         <div
@@ -107,10 +108,11 @@ function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, is
           <Button
             variant="secondary"
             size="icon"
+            aria-label="Scroll right"
             className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover/row:opacity-100 transition-opacity shadow-lg h-10 w-10 rounded-full"
             onClick={() => scroll('right')}
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-5 w-5" aria-hidden="true" />
           </Button>
         )}
       </div>
@@ -211,7 +213,7 @@ export default function Home() {
 
   return (
     <div className="space-y-8">
-      <div className="relative -mx-4 -mt-6 overflow-hidden rounded-b-lg">
+      <section className="relative -mx-4 -mt-6 overflow-hidden rounded-b-lg">
         {randomBackdrop ? (
           <img
             src={`${TMDB_BACKDROP}${randomBackdrop.backdrop_path}`}
@@ -231,12 +233,13 @@ export default function Home() {
               Discover what's playing and get recommendations based on your favorites.
             </p>
           </div>
-          <form onSubmit={handleSearch} className="max-w-md">
+          <form onSubmit={handleSearch} className="max-w-md" role="search">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <Input
                 type="text"
                 placeholder="Search movies..."
+                aria-label="Search movies"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="pl-10 bg-background/80 backdrop-blur"
@@ -244,7 +247,7 @@ export default function Home() {
             </div>
           </form>
         </div>
-      </div>
+      </section>
 
       <MovieRow title="New Releases" movies={nowPlaying} loading={loadingNow} error={errorNow} onRetry={retryNowPlaying} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} isToggling={isToggling} />
       <MovieRow title="Recommended for You" movies={recommendations} loading={loadingRecs} error={errorRecs} onRetry={loadRecommendations} onFavoriteToggle={toggleFavorite} isFavorited={isFavorited} isToggling={isToggling} />

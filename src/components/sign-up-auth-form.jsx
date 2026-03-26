@@ -75,7 +75,7 @@ export function SignUpAuthForm(props) {
   return (
     <div className="flex flex-col md:flex-row gap-6">
       <div className="flex flex-col items-center gap-4 md:w-1/2 md:border-r md:border-border md:pr-6">
-        <h3 className="text-lg font-semibold">Welcome!</h3>
+        <h2 className="text-lg font-semibold">Welcome!</h2>
         <p className="text-sm text-muted-foreground text-center">
           Thank you for joining TSMDB. Pick an avatar to get started!
         </p>

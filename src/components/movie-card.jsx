@@ -23,8 +23,8 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
               </div>
             )}
             {movie.vote_average > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm px-2 py-1 flex items-center gap-1 transition-opacity opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100">
-                <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm px-2 py-1 flex items-center gap-1 transition-opacity opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100" aria-label={`Rating: ${movie.vote_average.toFixed(1)} out of 10`}>
+                <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" aria-hidden="true" />
                 <span className="text-xs font-medium text-white">{movie.vote_average.toFixed(1)}</span>
               </div>
             )}
@@ -41,6 +41,7 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
         <Button
           variant="destructive"
           size="icon-xs"
+          aria-label={`Remove ${movie.title} from favorites`}
           className="absolute top-2 right-2 transition-opacity opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100"
           onClick={(e) => {
             e.preventDefault();
@@ -48,7 +49,7 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
             onRemove(movie.id);
           }}
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-3 w-3" aria-hidden="true" />
         </Button>
       )}
       {!onRemove && onFavoriteToggle && (
@@ -56,6 +57,8 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
           variant="secondary"
           size="icon-xs"
           disabled={isToggling}
+          aria-label={isFavorited ? `Remove ${movie.title} from favorites` : `Add ${movie.title} to favorites`}
+          aria-pressed={isFavorited}
           className={`absolute top-2 right-2 transition-opacity ${isFavorited ? 'opacity-100' : 'opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100'}`}
           onClick={(e) => {
             e.preventDefault();
@@ -64,9 +67,9 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
           }}
         >
           {isToggling ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
           ) : (
-            <Heart className={`h-3 w-3 ${isFavorited ? 'fill-current text-red-500' : ''}`} />
+            <Heart className={`h-3 w-3 ${isFavorited ? 'fill-current text-red-500' : ''}`} aria-hidden="true" />
           )}
         </Button>
       )}

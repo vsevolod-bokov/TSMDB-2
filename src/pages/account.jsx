@@ -298,7 +298,7 @@ export default function Account() {
               placeholder="Your display name"
             />
             {profileMsg && (
-              <p className={`text-sm ${profileMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
+              <p role="alert" className={`text-sm ${profileMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
                 {profileMsg.text}
               </p>
             )}
@@ -337,7 +337,7 @@ export default function Account() {
               />
             </div>
             {emailMsg && (
-              <p className={`text-sm ${emailMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
+              <p role="alert" className={`text-sm ${emailMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
                 {emailMsg.text}
               </p>
             )}
@@ -377,7 +377,7 @@ export default function Account() {
               />
             </div>
             {passwordMsg && (
-              <p className={`text-sm ${passwordMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
+              <p role="alert" className={`text-sm ${passwordMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
                 {passwordMsg.text}
               </p>
             )}

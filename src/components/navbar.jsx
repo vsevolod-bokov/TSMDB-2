@@ -33,7 +33,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+    <nav aria-label="Main navigation" className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto flex items-center gap-4 px-4 h-14">
         <Link to="/" className="text-lg font-bold shrink-0">
           TSMDB
@@ -51,12 +51,13 @@ export default function Navbar() {
           </Button>
         </div>
 
-        <form onSubmit={handleSearch} className="flex-1 mx-4">
+        <form onSubmit={handleSearch} className="flex-1 mx-4" role="search">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
               type="text"
               placeholder="Search movies..."
+              aria-label="Search movies"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-9 h-9"
@@ -76,21 +77,21 @@ export default function Navbar() {
               <span className="hidden md:inline text-sm">{user?.displayName}</span>
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
-            <LogOut className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign out">
+            <LogOut className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </div>
 
-      <div className="flex md:hidden items-center justify-around border-t border-border px-2 py-1">
+      <div className="flex md:hidden items-center justify-around border-t border-border px-2 py-1" role="navigation" aria-label="Mobile navigation">
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/"><Home className="h-4 w-4" /></Link>
+          <Link to="/" aria-label="Home"><Home className="h-4 w-4" aria-hidden="true" /></Link>
         </Button>
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/browse"><Film className="h-4 w-4" /></Link>
+          <Link to="/browse" aria-label="Browse"><Film className="h-4 w-4" aria-hidden="true" /></Link>
         </Button>
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/favorites"><Heart className="h-4 w-4" /></Link>
+          <Link to="/favorites" aria-label="Favorites"><Heart className="h-4 w-4" aria-hidden="true" /></Link>
         </Button>
       </div>
     </nav>
