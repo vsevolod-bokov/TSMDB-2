@@ -11,7 +11,8 @@ const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/original';
 const TMDB_LOGO = 'https://image.tmdb.org/t/p/w92';
 
-// Maps variant provider IDs to their parent platform ID
+// TMDB returns separate provider IDs for ad-supported tiers, international variants, etc.
+// This map collapses them to the main platform ID so we don't show duplicate providers.
 const PROVIDER_ALIASES = {
   1796: 8,   // Netflix Standard with Ads → Netflix
   119: 9,    // Amazon Prime Video (intl) → Prime Video
@@ -23,6 +24,8 @@ const PROVIDER_ALIASES = {
   387: 386,  // Peacock Premium Plus → Peacock
 };
 
+// Returns a deep-link URL for the given streaming provider so clicking a logo
+// takes the user directly to that platform's search page for this movie title.
 function getProviderUrl(providerId, title) {
   const resolved = PROVIDER_ALIASES[providerId] ?? providerId;
   const q = encodeURIComponent(title);
@@ -52,6 +55,8 @@ function getProviderUrl(providerId, title) {
   return search[resolved] || fallback[resolved] || null;
 }
 
+// Filters out duplicate providers after resolving aliases (e.g. "Netflix with Ads"
+// and "Netflix" both resolve to Netflix — keep only the first occurrence).
 function dedupeProviders(providers) {
   if (!providers) return [];
   const seen = new Set();
@@ -82,7 +87,8 @@ export default function Film() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    // Fetch movie details first (required), then secondary data with allSettled (partial failure OK)
+    // Movie details are required — fetch first, then kick off secondary requests in parallel.
+    // allSettled lets us show whatever succeeds even if one request fails (e.g. no providers).
     tmdbFetch(`/movie/${id}?language=en-US`)
       .then(async (movieData) => {
         setMovie(movieData);
@@ -254,6 +260,7 @@ export default function Film() {
                             <img
                               src={`${TMDB_LOGO}${p.logo_path}`}
                               alt={p.provider_name}
+                              loading="lazy"
                               className="w-6 h-6 rounded"
                             />
                             <span className="text-sm">{p.provider_name}</span>
@@ -277,6 +284,7 @@ export default function Film() {
                             <img
                               src={`${TMDB_LOGO}${p.logo_path}`}
                               alt={p.provider_name}
+                              loading="lazy"
                               className="w-6 h-6 rounded"
                             />
                             <span className="text-sm">{p.provider_name}</span>
@@ -300,6 +308,7 @@ export default function Film() {
                             <img
                               src={`${TMDB_LOGO}${p.logo_path}`}
                               alt={p.provider_name}
+                              loading="lazy"
                               className="w-6 h-6 rounded"
                             />
                             <span className="text-sm">{p.provider_name}</span>
@@ -361,6 +370,7 @@ export default function Film() {
                     <img
                       src={`${TMDB_IMG}${person.profile_path}`}
                       alt={person.name}
+                      loading="lazy"
                       className="w-28 h-28 rounded-full object-cover mx-auto"
                     />
                   ) : (

@@ -51,14 +51,15 @@ export default function Results() {
   const query = searchParams.get('q') || '';
   const navType = useNavigationType();
 
-  // Check reload flag (set by beforeunload — fires on refresh, not SPA nav)
+  // Detect page reload vs fresh navigation (same pattern as browse.jsx).
   const isReload = useRef((() => {
     const flag = sessionStorage.getItem(RELOAD_KEY);
     sessionStorage.removeItem(RELOAD_KEY);
     return flag === 'true';
   })()).current;
 
-  // Matches browse.jsx pattern exactly
+  // Only restore from cache on back/forward or reload — and only if the cached query
+  // matches the current URL query param (otherwise it's a new search).
   const shouldRestore = navType === 'POP' || isReload;
   const cache = useRef((() => {
     if (!shouldRestore) { clearCache(); return null; }
@@ -91,7 +92,9 @@ export default function Results() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, []);
 
-  // Restore scroll position after cached movies render
+  // Restore scroll position after cached movies render.
+  // Double-rAF ensures the DOM has painted before scrolling; fallback setTimeout
+  // handles cases where layout hasn't finished (e.g. images still loading).
   useEffect(() => {
     if (cache && !restoredScroll.current && movies.length > 0) {
       restoredScroll.current = true;
@@ -176,7 +179,8 @@ export default function Results() {
       });
   }, [query, page]);
 
-  // Reset when query actually changes (not on initial mount)
+  // Reset all state when the search query changes (e.g. user submits a new search).
+  // Skips the initial mount by comparing against a ref of the previous query value.
   const prevQuery = useRef(query);
   useEffect(() => {
     if (prevQuery.current === query) return;
@@ -211,6 +215,8 @@ export default function Results() {
     return () => observer.disconnect();
   }, [observerCallback]);
 
+  // Client-side sort — TMDB's search API doesn't support sort_by, so we sort locally.
+  // "default" preserves TMDB's relevance ranking.
   const sortedMovies = useMemo(() => {
     if (sortBy === 'default') return movies;
     const [field, direction] = sortBy.split('-');

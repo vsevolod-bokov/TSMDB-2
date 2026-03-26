@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { User, Loader2 } from 'lucide-react';
 
+// Converts Firebase Auth error codes into user-friendly messages.
 function friendlyError(err) {
   const code = err?.code;
   switch (code) {
@@ -99,6 +100,8 @@ export default function Account() {
     setSavingProfile(false);
   }
 
+  // Email change requires reauthentication first (Firebase security requirement),
+  // then sends a verification link to the new address before actually changing it.
   async function handleUpdateEmail(e) {
     e.preventDefault();
     setEmailMsg(null);
@@ -132,6 +135,7 @@ export default function Account() {
     setSavingEmail(false);
   }
 
+  // Password change also requires reauthentication before Firebase allows the update.
   async function handleUpdatePassword(e) {
     e.preventDefault();
     setPasswordMsg(null);
@@ -246,13 +250,15 @@ export default function Account() {
                       key={seed}
                       type="button"
                       onClick={() => setSelectedSeed(seed)}
+                      aria-label={`Avatar option ${seed}`}
+                      aria-pressed={selectedSeed === seed}
                       className={`rounded-full overflow-hidden border-2 transition-colors p-0.5 ${
                         selectedSeed === seed ? "border-primary" : "border-transparent hover:border-muted-foreground/30"
                       }`}
                     >
                       <img
                         src={getAvatarUrl(avatarStyle, seed)}
-                        alt="Avatar option"
+                        alt=""
                         className="h-10 w-10 rounded-full bg-muted"
                       />
                     </button>
@@ -292,11 +298,15 @@ export default function Account() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <Input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your display name"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input
+                id="displayName"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your display name"
+              />
+            </div>
             {profileMsg && (
               <p role="alert" className={`text-sm ${profileMsg.type === 'success' ? 'text-green-500' : 'text-destructive'}`}>
                 {profileMsg.text}
@@ -319,8 +329,9 @@ export default function Account() {
         <CardContent>
           <form onSubmit={handleUpdateEmail} className="space-y-4">
             <div className="space-y-2">
-              <Label>New Email</Label>
+              <Label htmlFor="newEmail">New Email</Label>
               <Input
+                id="newEmail"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -328,8 +339,9 @@ export default function Account() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Current Password</Label>
+              <Label htmlFor="emailCurrentPassword">Current Password</Label>
               <Input
+                id="emailCurrentPassword"
                 type="password"
                 value={emailPassword}
                 onChange={(e) => setEmailPassword(e.target.value)}
@@ -358,8 +370,9 @@ export default function Account() {
         <CardContent>
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div className="space-y-2">
-              <Label>Current Password</Label>
+              <Label htmlFor="currentPassword">Current Password</Label>
               <Input
+                id="currentPassword"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -368,8 +381,9 @@ export default function Account() {
             </div>
             <Separator />
             <div className="space-y-2">
-              <Label>New Password</Label>
+              <Label htmlFor="newPassword">New Password</Label>
               <Input
+                id="newPassword"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Trash2, Heart, Star, Loader2 } from 'lucide-react';
 
 export const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 
-export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorited, isToggling }) {
+const MovieCard = memo(function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorited, isToggling }) {
   return (
     <Link to={`/film/${movie.id}`} className="relative group">
       <Card className="overflow-hidden hover:ring-2 hover:ring-primary transition-all py-0 gap-0">
@@ -15,6 +16,7 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
               <img
                 src={`${TMDB_IMG}${movie.poster_path}`}
                 alt={movie.title}
+                loading="lazy"
                 className="w-full aspect-[2/3] object-cover"
               />
             ) : (
@@ -75,4 +77,6 @@ export default function MovieCard({ movie, onRemove, onFavoriteToggle, isFavorit
       )}
     </Link>
   );
-}
+});
+
+export default MovieCard;
