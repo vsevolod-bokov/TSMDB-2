@@ -39,6 +39,9 @@ export function FavoritesProvider({ children }) {
     [togglingIds]
   );
 
+  // Optimistic toggle: updates the UI immediately, then syncs with Firestore.
+  // If the Firestore write fails, the optimistic change is rolled back.
+  // togglingIds prevents double-clicks from firing concurrent writes for the same movie.
   const toggleFavorite = useCallback(
     async (movieId) => {
       if (!user) return;

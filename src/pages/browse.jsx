@@ -72,11 +72,15 @@ export default function Browse() {
   const navType = useNavigationType();
   const [searchParams] = useSearchParams();
   const genreParam = searchParams.get('genre');
+  // Detect page reload vs fresh navigation. beforeunload sets this flag (see effect below);
+  // SPA navigations don't fire beforeunload, so the flag distinguishes the two cases.
   const isReload = useRef((() => {
     const flag = sessionStorage.getItem(RELOAD_KEY);
     sessionStorage.removeItem(RELOAD_KEY);
     return flag === 'true';
   })()).current;
+  // Restore cached state on back/forward (POP) or page reload — but not if we arrived
+  // via a genre deep-link (?genre=X), since that should start a fresh browse.
   const shouldRestore = navType === 'POP' || (isReload && !genreParam);
   const cache = useRef(shouldRestore ? loadCache() : null).current;
   if (!shouldRestore) clearCache();
@@ -106,7 +110,9 @@ export default function Browse() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, []);
 
-  // Restore scroll position after cached movies render
+  // Restore scroll position after cached movies render.
+  // Double-rAF waits for React to paint the restored movie grid before scrolling,
+  // with a fallback setTimeout in case the browser hasn't finished layout yet.
   useEffect(() => {
     if (cache && !restoredScroll.current && movies.length > 0) {
       restoredScroll.current = true;
@@ -122,7 +128,8 @@ export default function Browse() {
     }
   }, [movies]);
 
-  // Track scroll direction for mobile genre dropdown
+  // Track scroll direction for mobile genre dropdown — uses rAF throttling
+  // to avoid layout thrashing on every scroll event.
   useEffect(() => {
     let ticking = false;
     function onScroll() {
@@ -161,7 +168,8 @@ export default function Browse() {
     }
   }, [movies, selectedGenre, sortBy, page, totalPages, loading]);
 
-  // Fetch movies — replaces list on page 1, appends on subsequent pages
+  // Fetch movies — replaces list on page 1, appends on subsequent pages.
+  // Deduplicates by ID on append since TMDB can return overlapping results across pages.
   useEffect(() => {
     // Skip the initial fetch if we restored from cache
     if (skipFetch.current) {
@@ -189,6 +197,7 @@ export default function Browse() {
             return [...prev, ...unique];
           });
         }
+        // TMDB caps at 500 pages for discover endpoints
         setTotalPages(Math.min(data.total_pages || 1, 500));
         setError(null);
       })
@@ -214,9 +223,11 @@ export default function Browse() {
     clearCache();
     setSortBy(value);
     setPage(1);
+    window.scrollTo(0, 0);
   }
 
-  // IntersectionObserver to trigger loading next page
+  // Infinite scroll: an invisible sentinel div sits below the movie grid.
+  // When it enters the viewport (with 400px lookahead), we load the next page.
   const observerCallback = useCallback(
     (entries) => {
       const entry = entries[0];

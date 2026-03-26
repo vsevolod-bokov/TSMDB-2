@@ -60,6 +60,8 @@ export function SignUpAuthForm(props) {
     setSelectedSeed(newSeeds[0]);
   }
 
+  // Two-step sign-up: first create the account via Firebase Auth, then immediately
+  // set the selected avatar as the user's photoURL so it's available on first login.
   async function onSubmit(values) {
     try {
       const credential = await action(values);
@@ -107,13 +109,15 @@ export function SignUpAuthForm(props) {
                 key={seed}
                 type="button"
                 onClick={() => setSelectedSeed(seed)}
+                aria-label={`Avatar option ${seed}`}
+                aria-pressed={selectedSeed === seed}
                 className={`rounded-full overflow-hidden border-2 transition-colors p-0.5 ${
                   selectedSeed === seed ? "border-primary" : "border-transparent hover:border-muted-foreground/30"
                 }`}
               >
                 <img
                   src={getAvatarUrl(avatarStyle, seed)}
-                  alt="Avatar option"
+                  alt=""
                   className="h-10 w-10 rounded-full bg-muted"
                 />
               </button>

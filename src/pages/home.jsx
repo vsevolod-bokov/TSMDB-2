@@ -13,6 +13,8 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/original';
 
+// Horizontal scrollable row of movie cards with left/right arrow buttons.
+// Arrow visibility is driven by scroll position — hidden when already at the edge.
 function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, isFavorited, isToggling }) {
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -25,6 +27,7 @@ function MovieRow({ title, movies, loading, error, onRetry, onFavoriteToggle, is
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
   }
 
+  // Re-check arrow visibility on scroll, resize (window/container), and when movies change
   useEffect(() => {
     updateScrollButtons();
     const el = scrollRef.current;
@@ -148,6 +151,8 @@ export default function Home() {
 
   useEffect(() => { retryNowPlaying(); }, []);
 
+  // Build personalized recommendations by fetching TMDB's "recommendations" for a random
+  // sample of the user's favorites, then merging/deduplicating the results.
   function loadRecommendations() {
     if (!user) return;
     setErrorRecs(null);
@@ -159,13 +164,13 @@ export default function Home() {
           setRecommendations([]);
           return;
         }
-        // Pick up to 5 random favorites to fetch recommendations from
+        // Sample 5 random favorites to keep API calls reasonable while adding variety
         const ids = [...favIds];
         const shuffled = ids.sort(() => Math.random() - 0.5).slice(0, 5);
         const results = await Promise.allSettled(
           shuffled.map((id) => tmdbFetch(`/movie/${id}/recommendations?language=en-US&page=1`))
         );
-        // Merge, deduplicate, and exclude movies already in favorites
+        // Merge all recommendation lists, removing duplicates and movies already favorited
         const seen = new Set();
         const merged = [];
         let anyFailed = false;
@@ -196,6 +201,8 @@ export default function Home() {
 
   useEffect(() => { loadRecommendations(); }, [user]);
 
+  // Pick a random backdrop from now-playing movies for the hero section.
+  // Memoized on nowPlaying so it only re-rolls when the data changes.
   const randomBackdrop = useMemo(() => {
     const withBackdrop = nowPlaying.filter((m) => m.backdrop_path);
     if (!withBackdrop.length) return null;

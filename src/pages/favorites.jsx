@@ -74,11 +74,13 @@ const RELOAD_KEY = 'favorites_reloading';
 export default function Favorites() {
   const { user } = useAuth();
   const navType = useNavigationType();
+  // Detect page reload vs fresh SPA navigation — see browse.jsx for detailed explanation.
   const isReload = useRef((() => {
     const flag = sessionStorage.getItem(RELOAD_KEY);
     sessionStorage.removeItem(RELOAD_KEY);
     return flag === 'true';
   })()).current;
+  // Restore cached state on back/forward (POP) or page reload only.
   const shouldRestore = navType === 'POP' || isReload;
   const cache = useRef(shouldRestore ? loadCache() : null).current;
   if (!shouldRestore) clearCache();
@@ -159,7 +161,8 @@ export default function Favorites() {
     }
   }, [movies, selectedGenre, sortBy, visibleCount, loading]);
 
-  // Fetch favorites from Firestore (skip if restored from cache)
+  // Fetch favorites: reads favorite IDs from Firestore, then hydrates each with TMDB data.
+  // Uses allSettled so partial failures (e.g. a deleted movie) don't block the whole list.
   useEffect(() => {
     if ((cache && retryKey === 0) || !user) return;
     setError(null);
@@ -194,6 +197,8 @@ export default function Favorites() {
       .finally(() => setLoading(false));
   }, [user, retryKey]);
 
+  // Optimistic removal: immediately removes the movie from the UI, then deletes
+  // from Firestore. Reverts the list if the delete fails.
   async function handleRemove(movieId) {
     const prevMovies = movies;
     const removed = movies.find((m) => m.id === movieId);
@@ -208,10 +213,12 @@ export default function Favorites() {
     }
   }
 
+  // Client-side filter + sort since favorites are already fully loaded in memory.
+  // Checks both genre_ids (from search results) and genres (from detail responses)
+  // because TMDB uses different shapes depending on the endpoint.
   const filteredAndSorted = useMemo(() => {
     let list = movies;
 
-    // Filter by genre
     if (selectedGenre !== null) {
       list = list.filter((m) => m.genre_ids?.includes(selectedGenre) || m.genres?.some((g) => g.id === selectedGenre));
     }
@@ -270,7 +277,8 @@ export default function Favorites() {
     return () => observer.disconnect();
   }, [observerCallback]);
 
-  // Count movies per genre for badge display
+  // Count movies per genre for sidebar badge numbers. Handles both genre_ids
+  // (array of ints from search/discover) and genres (array of objects from detail).
   const genreCounts = useMemo(() => {
     const counts = { all: movies.length };
     for (const movie of movies) {
