@@ -12,8 +12,8 @@ A movie discovery web app where users can browse, search, and save their favorit
 ### Installation
 
 ```bash
-git clone https://github.com/vsevolod-bokov/TSMDB.git
-cd TSMDB
+git clone https://github.com/vsevolod-bokov/TSMDB-2.git
+cd TSMDB-2
 npm install
 ```
 
